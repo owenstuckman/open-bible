@@ -136,7 +136,8 @@ export function ActionPopover({ rect, current, onColor, onNote, onRemove, onDism
   const width = onRemove ? 296 : 224;
   // Touch devices put their own menu above a selection, so go below there.
   const coarse = window.matchMedia("(pointer: coarse)").matches;
-  const top = coarse ? rect.bottom + 10 : rect.top - 50 < 64 ? rect.bottom + 10 : rect.top - 50;
+  const wanted = coarse ? rect.bottom + 10 : rect.top - 50 < 64 ? rect.bottom + 10 : rect.top - 50;
+  const top = Math.min(Math.max(8, wanted), window.innerHeight - 56); // always on screen
   const left = Math.min(Math.max(8, rect.left + rect.width / 2 - width / 2), window.innerWidth - width - 8);
 
   const keep = (e: React.PointerEvent | React.MouseEvent) => e.preventDefault(); // don't drop the selection

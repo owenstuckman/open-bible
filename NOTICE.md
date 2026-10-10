@@ -8,7 +8,8 @@ The code and documentation in this repository are released under the MIT License
 ### Douay-Rheims (included: `data/douay-rheims.json`)
 - **Text:** the Douay-Rheims Bible, Challoner revision (1749–1752). It is in the **public domain**.
 - **Digitization:** this text was digitized by [Project Gutenberg](https://www.gutenberg.org/ebooks/8300) (eBook #8300). We credit them here as the source. The data file itself carries no Project Gutenberg branding or license header, in line with the [Project Gutenberg license](https://www.gutenberg.org/policy/license.html).
-- **JSON structure:** adapted from [isaacronan/douay-rheims-json](https://github.com/isaacronan/douay-rheims-json), used under the MIT License below. We converted it to one file keyed by USFM book codes, dropped the commentary notes, trimmed stray characters, and renumbered by position the 12 chapters whose source verse numbers were duplicated.
+- **Footnotes:** Bishop Challoner's annotations (18th century), which are also public domain, come from the same source.
+- **JSON structure:** adapted from [isaacronan/douay-rheims-json](https://github.com/isaacronan/douay-rheims-json), used under the MIT License below. We converted it to one file keyed by USFM book codes, split each annotation into the phrase it comments on and its text, trimmed stray characters, and renumbered by position the 12 chapters whose source verse numbers were duplicated.
 
 ```
 MIT License

@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import { and, asc, eq, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { verses } from "@/db/schema";
+import { footnotes, verses } from "@/db/schema";
 import { BOOKS, bookIndex, getBook } from "./books";
 
 // The text source behind the reader. Swapping translations (Douay-Rheims
@@ -29,6 +29,7 @@ export function activeTranslation(): TranslationId {
 }
 
 export type Verse = { n: number; text: string };
+export type Footnote = { verse: number; seq: number; offset: number | null; label: string | null; text: string };
 export type ChapterRef = { book: string; chapter: number };
 export type Chapter = {
   book: string;
@@ -36,6 +37,7 @@ export type Chapter = {
   chapter: number;
   chapterCount: number;
   verses: Verse[];
+  footnotes: Footnote[];
   prev: ChapterRef | null;
   next: ChapterRef | null;
 };
@@ -69,13 +71,27 @@ export async function getChapter(
   const count = book ? counts[book.id] : undefined;
   if (!book || !count || !Number.isInteger(chapter) || chapter < 1 || chapter > count) return null;
 
-  const rows = await getDb()
+  const db = getDb();
+  const rows = await db
     .select({ n: verses.verse, text: verses.text })
     .from(verses)
     .where(
       and(eq(verses.translation, translation), eq(verses.bookId, book.id), eq(verses.chapter, chapter)),
     )
     .orderBy(asc(verses.verse));
+  const notes = await db
+    .select({
+      verse: footnotes.verse,
+      seq: footnotes.seq,
+      offset: footnotes.offset,
+      label: footnotes.label,
+      text: footnotes.text,
+    })
+    .from(footnotes)
+    .where(
+      and(eq(footnotes.translation, translation), eq(footnotes.bookId, book.id), eq(footnotes.chapter, chapter)),
+    )
+    .orderBy(asc(footnotes.seq));
 
   return {
     book: book.id,
@@ -83,6 +99,7 @@ export async function getChapter(
     chapter,
     chapterCount: count,
     verses: rows,
+    footnotes: notes,
     prev: neighbour(counts, book.id, chapter, -1),
     next: neighbour(counts, book.id, chapter, 1),
   };

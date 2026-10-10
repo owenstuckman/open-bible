@@ -7,12 +7,20 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
-import { verses } from "../src/db/schema";
+import { footnotes, verses } from "../src/db/schema";
 import { BOOKS } from "../src/lib/bible/books";
 
 type TextFile = {
   translation: string;
-  books: Record<string, { c: number; v: [number, string][] }[]>;
+  books: Record<
+    string,
+    {
+      c: number;
+      v: [verse: number, text: string][];
+      // optional footnotes: [verse, offset in verse text | null, label | null, text]
+      f?: [number, number | null, string | null, string][];
+    }[]
+  >;
 };
 
 async function main() {
@@ -31,6 +39,21 @@ async function main() {
     ),
   );
 
+  const notes = Object.entries(data.books).flatMap(([bookId, chapters]) =>
+    chapters.flatMap(({ c, f = [] }) =>
+      f.map(([verse, offset, label, text], seq) => ({
+        translation: data.translation,
+        bookId,
+        chapter: c,
+        verse,
+        seq,
+        offset,
+        label,
+        text,
+      })),
+    ),
+  );
+
   const client = postgres(url, { prepare: false, max: 1 });
   const db = drizzle(client);
   const BATCH = 2000;
@@ -39,6 +62,10 @@ async function main() {
     process.stdout.write(`\r${data.translation}: ${Math.min(i + BATCH, rows.length)} / ${rows.length} verses`);
   }
   process.stdout.write("\n");
+  for (let i = 0; i < notes.length; i += BATCH) {
+    await db.insert(footnotes).values(notes.slice(i, i + BATCH)).onConflictDoNothing();
+  }
+  if (notes.length) console.log(`${data.translation}: ${notes.length} footnotes`);
   await client.end();
 }
 

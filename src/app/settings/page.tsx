@@ -8,6 +8,7 @@ import { passkeys } from "@/db/schema";
 import { getSession } from "@/lib/auth/session";
 import { TRANSLATIONS, activeTranslation } from "@/lib/bible/text";
 import { AddPasskeyForm, RemovePasskeyButton, SignOutButton } from "@/components/settings/PasskeyControls";
+import { FootnotesToggle } from "@/components/settings/FootnotesToggle";
 
 export default function SettingsPage() {
   const t = TRANSLATIONS[activeTranslation()];
@@ -31,6 +32,11 @@ export default function SettingsPage() {
         <h2 className="mb-2 text-xs font-semibold tracking-widest text-muted uppercase">Translation</h2>
         <p className="font-medium">{t.name}</p>
         <p className="mt-1 text-sm text-muted">{t.notice}</p>
+      </section>
+
+      <section className="mb-10">
+        <h2 className="mb-3 text-xs font-semibold tracking-widest text-muted uppercase">Reading</h2>
+        <FootnotesToggle />
       </section>
 
       <SignOutButton />

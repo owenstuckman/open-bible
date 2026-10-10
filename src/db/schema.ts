@@ -44,6 +44,24 @@ export const verses = pgTable(
   (t) => [primaryKey({ columns: [t.translation, t.bookId, t.chapter, t.verse] })],
 );
 
+// Footnotes/annotations that ship with a translation (Challoner's notes for
+// Douay-Rheims; the NABRE's notes once licensed). `offset` places the marker
+// inside the verse text; null means at the end of the verse.
+export const footnotes = pgTable(
+  "footnotes",
+  {
+    translation: text("translation").notNull(),
+    bookId: text("book_id").notNull(),
+    chapter: integer("chapter").notNull(),
+    verse: integer("verse").notNull(),
+    seq: integer("seq").notNull(), // order within the chapter
+    offset: integer("offset"),
+    label: text("label"), // the phrase being annotated, when known
+    text: text("text").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.translation, t.bookId, t.chapter, t.seq] })],
+);
+
 // Notes are anchored to a verse range within one chapter. Refs are USFM book
 // codes + numbers, so they survive a translation swap (modulo versification).
 export const notes = pgTable(

@@ -16,7 +16,9 @@ import { segmentVerse } from "@/lib/highlights/types";
 import type { ProgressSummary } from "@/lib/progress/server";
 import { formatPct } from "@/lib/progress/format";
 import { useReadingTracker } from "./useReadingTracker";
-import { setReadingMode, useReadingMode } from "./readingMode";
+import { footnotesPref, readingModePref } from "@/lib/prefs";
+import { ChapterFootnotes, FootnotePopover, footnoteLetter, withFootnotes } from "./Footnotes";
+import type { Footnote } from "@/lib/bible/text";
 import { topVerse } from "./topVerse";
 
 type Props = {
@@ -72,7 +74,9 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     verse: null,
   });
   const notes = useNotes();
-  const mode = useReadingMode();
+  const mode = readingModePref.use();
+  const showFootnotes = footnotesPref.use() === "on";
+  const [activeFn, setActiveFn] = useState<{ fn: Footnote; letter: string; where: string; rect: DOMRect } | null>(null);
   const pendingScroll = useRef<string | null>(null);
   const highlights = useHighlights();
   const [activeHl, setActiveHl] = useState<{ h: ClientHighlight; rect: DOMRect } | null>(null);
@@ -280,7 +284,7 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
       const here = chapters.find((c) => refKey(c) === refKey(current)) ?? chapters[0];
       setChapters([here]);
     }
-    setReadingMode(next);
+    readingModePref.set(next);
   }
 
   // After a mode switch, put the same verse back at the top.
@@ -464,6 +468,10 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
               onHighlightClick={(h, rect) => setActiveHl({ h, rect })}
               onAddNote={(v) => addNote(ch.book, ch.chapter, v)}
               read={completed.has(refKey(ch))}
+              showFootnotes={showFootnotes}
+              onFootnoteClick={(fn, letter, rect) =>
+                setActiveFn({ fn, letter, rect, where: `${getBook(ch.book)?.abbr ?? ch.book} ${ch.chapter}:${fn.verse}` })
+              }
               onToggleRead={(r) => toggleRead(ch, r)}
               onOpenNotes={(v) => openSheet(ch, v)}
             />
@@ -498,6 +506,16 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
           </div>
         </div>
       </main>
+
+      {activeFn && (
+        <FootnotePopover
+          fn={activeFn.fn}
+          letter={activeFn.letter}
+          where={activeFn.where}
+          rect={activeFn.rect}
+          onClose={() => setActiveFn(null)}
+        />
+      )}
 
       {activeHl ? (
         <ActionPopover
@@ -580,6 +598,8 @@ type RowProps = {
   onOpenNotes: (verse: number) => void;
   read: boolean;
   onToggleRead: (read: boolean) => void;
+  showFootnotes: boolean;
+  onFootnoteClick: (fn: Footnote, letter: string, rect: DOMRect) => void;
 };
 
 /** One chapter: Bible text on the left, its notes on the right (desktop). */
@@ -593,11 +613,17 @@ function ChapterRow({
   onOpenNotes,
   read,
   onToggleRead,
+  showFootnotes,
+  onFootnoteClick,
 }: RowProps) {
   const versesRef = useRef<HTMLDivElement>(null);
   const [hoverNote, setHoverNote] = useState<ClientNote | null>(null);
   const [hoverVerse, setHoverVerse] = useState<number | null>(null);
   const isBookStart = chapter.chapter === 1;
+
+  const fnByVerse = new Map<number, { fn: Footnote; letter: string }[]>();
+  const fnList = showFootnotes ? chapter.footnotes.map((fn, i) => ({ fn, letter: footnoteLetter(i) })) : [];
+  for (const f of fnList) fnByVerse.set(f.fn.verse, [...(fnByVerse.get(f.fn.verse) ?? []), f]);
 
   const noted = new Set<number>();
   for (const n of notes) for (let v = n.verseStart; v <= n.verseEnd; v++) noted.add(v);
@@ -665,29 +691,42 @@ function ChapterRow({
                   {v.n}
                 </sup>
                 <span data-vt>
-                  {segmentVerse(v.text, v.n, highlights).map((seg, i) =>
-                    seg.highlight ? (
-                      <mark
-                        key={i}
-                        data-hl={seg.highlight.key}
-                        className={`hl hl-${seg.highlight.color}`}
-                        onClick={(e) => {
-                          if (!window.getSelection()?.isCollapsed) return; // finishing a drag, not a click
-                          const h = highlights.find((x) => x.key === seg.highlight!.key);
-                          if (h) onHighlightClick(h, e.currentTarget.getBoundingClientRect());
-                        }}
-                      >
-                        {seg.text}
-                      </mark>
-                    ) : (
-                      seg.text
-                    ),
+                  {withFootnotes(segmentVerse(v.text, v.n, highlights), fnByVerse.get(v.n) ?? [], v.text.length).map(
+                    (piece, i) =>
+                      piece.kind === "footnote" ? (
+                        <button
+                          key={`fn${piece.fn.seq}`}
+                          data-fn-label={piece.letter}
+                          aria-label={`Footnote ${piece.letter}`}
+                          className="fn-marker"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onFootnoteClick(piece.fn, piece.letter, e.currentTarget.getBoundingClientRect());
+                          }}
+                        />
+                      ) : piece.highlight ? (
+                        <mark
+                          key={i}
+                          data-hl={piece.highlight.key}
+                          className={`hl hl-${piece.highlight.color}`}
+                          onClick={(e) => {
+                            if (!window.getSelection()?.isCollapsed) return; // finishing a drag, not a click
+                            const h = highlights.find((x) => x.key === piece.highlight!.key);
+                            if (h) onHighlightClick(h, e.currentTarget.getBoundingClientRect());
+                          }}
+                        >
+                          {piece.text}
+                        </mark>
+                      ) : (
+                        piece.text
+                      ),
                   )}
                 </span>
               </p>
             );
           })}
         </div>
+        <ChapterFootnotes notes={fnList} where={(v) => `${chapter.chapter}:${v}`} />
       </div>
       <aside className="hidden pr-2 pl-8 lg:block" aria-label={`Notes on ${chapter.bookName} ${chapter.chapter}`}>
         <NotesColumn
