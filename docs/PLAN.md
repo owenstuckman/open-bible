@@ -136,8 +136,8 @@ First run
   1. Set env var SETUP_TOKEN (long random string) in Vercel.
   2. Visit /setup?token=…  → page calls generateRegistrationOptions()
   3. Face ID / Windows Hello → verifyRegistrationResponse() → store credential
-  4. App records "owner enrolled"; /setup is disabled from then on (404),
-     even with the token. Remove SETUP_TOKEN from Vercel afterward.
+  4. App stores sha256(SETUP_TOKEN) as "used"; /setup 404s from then on,
+     even with the same token.
 
 Every sign-in
   /login → generateAuthenticationOptions() → biometric prompt
@@ -151,11 +151,12 @@ Adding another device
   Settings lists passkeys with nickname + last used, and each can be revoked.
 
 Lockout recovery
-  Lost every passkey? Set a new SETUP_TOKEN plus RECOVERY=1 in Vercel and redeploy.
-  /setup re-opens for a single enrollment, then locks again.
+  Lost every passkey? Set SETUP_TOKEN to a NEW value in Vercel and redeploy.
+  /setup re-opens for a single enrollment (with the new token), then locks again.
 ```
 
-* **Challenge storage:** the WebAuthn challenge is kept in a short-lived (5 min) signed cookie, so no extra table is needed.
+* **Challenge storage:** the WebAuthn challenge is kept in a short-lived (5 min) encrypted cookie and is single-use, so no extra table is needed.
+* **Revocation:** removing a passkey in Settings also invalidates sessions it created, for anything that writes data. Those calls re-check that the session's passkey still exists.
 * **RP ID** = the production domain. Passkeys are bound to the domain, so choose the final domain (or the `*.vercel.app` name) **before** enrolling. Changing it later means re-enrolling.
 * **Preview deploys:** they live on different domains, so passkeys won't work there. Previews are protected with Vercel Deployment Protection, and auth is only tested on production or localhost.
 
@@ -171,9 +172,9 @@ passkeys  (id TEXT PK,                         -- credential ID (base64url)
            nickname TEXT, created_at TIMESTAMPTZ, last_used_at TIMESTAMPTZ)
 app_meta  (key TEXT PK, value TEXT)            -- e.g. owner_enrolled_at
 
--- Reference data (seeded)
-books     (id TEXT PK,           -- 'GEN', 'JHN', 'SIR' … (USFM codes)
-           name TEXT, testament TEXT, canon_order INT, chapter_count INT)
+-- Reference data
+-- Book list (USFM id, NABRE name, testament, order) lives in code: src/lib/bible/books.ts.
+-- Chapter counts are derived from `verses`, since they differ by translation.
 verses    (translation TEXT, book_id TEXT, chapter INT, verse INT,
            text TEXT,
            PRIMARY KEY (translation, book_id, chapter, verse))
@@ -225,7 +226,7 @@ POST   /api/notes        PATCH/DELETE /api/notes/:id
 | Phase | Deliverable | Done when |
 |---|---|---|
 | **0. Decide** | ✅ Decisions made (see top). ⏳ NABRE permission email sent by owner | License reply received |
-| **1. Skeleton** | Next.js app on Vercel, Neon Postgres + Drizzle, **passkey auth** (setup, login, add device), Douay-Rheims dev seed (73 books), book/chapter picker, **continuous-scroll reader** | I can enroll a passkey and read John 1 → 2 by scrolling, on my phone |
+| **1. Skeleton** ✅ | Next.js app on Vercel, Neon Postgres + Drizzle, **passkey auth** (setup, login, add device), Douay-Rheims dev seed (73 books), book/chapter picker, **continuous-scroll reader** | I can enroll a passkey and read John 1 → 2 by scrolling, on my phone |
 | **2. Split view + notes** | Resizable split, verse-anchored **Markdown** notes with aligned layout, autosave, mobile bottom sheet | Notes appear beside their verse on desktop and in a sheet on mobile |
 | **3. Highlights** | Selection popover, 4 colors, multi-verse ranges, highlight → note | Highlights persist and render after reload on another device |
 | **4. Progress** | Auto read tracking, resume, progress page | Reading Mark straight through shows Mark at 100% |

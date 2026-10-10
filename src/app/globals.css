@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #f7f4ee;
+  --paper: #fffdf8;
+  --ink: #2a2622;
+  --muted: #7a7167;
+  --line: #e6dfd3;
+  --accent: #8a2b2b;
+  --accent-soft: #f3e6e3;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1b1917;
+    --paper: #221f1c;
+    --ink: #ece6dc;
+    --muted: #a39a8e;
+    --line: #3a352f;
+    --accent: #e08a7a;
+    --accent-soft: #3a2724;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-serif: var(--font-literata), Georgia, "Times New Roman", serif;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+/* Reader manages its own scroll anchoring when chapters are prepended. */
+.reader-scroll {
+  overflow-anchor: none;
+}
+
+.verse sup {
+  font-family: var(--font-sans);
+  font-size: 0.6em;
+  font-weight: 600;
+  color: var(--accent);
+  margin-right: 0.25em;
+  user-select: none;
+}
+
+dialog::backdrop {
+  background: rgb(0 0 0 / 0.35);
+}
