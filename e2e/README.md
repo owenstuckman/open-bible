@@ -9,6 +9,7 @@ Browser tests that drive a **production build** with Playwright. Passkeys run th
 | `highlights.mjs` | Single and multi-verse highlights, offsets, recolor, remove, note from highlight, validation, mobile toolbar |
 | `progress.mjs` | Dwell-based reading, skim rejection, manual mark/unmark, cross-device resume without drift, beacon on page hide, progress page |
 | `page.mjs` | Page mode: mode switch keeps the verse, pager, arrow keys, persistence, book boundaries, swipe, mobile header |
+| `footnotes.mjs` | Footnote markers placed after their phrase, popover, chapter list, highlight across a marker, settings toggle, mobile |
 
 ## Running
 
@@ -25,7 +26,9 @@ TOKEN=<SETUP_TOKEN> node e2e/auth-reader.mjs
 # of an existing passkey (e.g. the one auth-reader just enrolled):
 #   select id from passkeys limit 1;
 export SESSION_SECRET=<from .env.local> PKID=<passkey id>
-node e2e/notes.mjs && node e2e/highlights.mjs && node e2e/progress.mjs && node e2e/page.mjs
+node e2e/notes.mjs && node e2e/highlights.mjs && node e2e/progress.mjs && node e2e/page.mjs && node e2e/footnotes.mjs
 ```
+
+Unit tests (no browser or database needed) run with `npm test`.
 
 Screenshots go to `e2e/.shots/` (gitignored). Set `BASE_URL` to test somewhere other than `http://localhost:3100`.
