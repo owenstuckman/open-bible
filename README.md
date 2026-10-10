@@ -96,3 +96,9 @@ The Douay-Rheims follows the Latin Vulgate, so some details won't match the NABR
 - Book names in the UI already use NABRE names (Joshua, 1 Samuel, Sirach…), even where the DR says Josue, 1 Kings, Ecclesiasticus.
 
 The source data had a dozen chapters with typo'd verse numbers (e.g. a duplicated "6" where "5" belonged). These were renumbered by position during conversion.
+
+## License
+
+- **Code and docs:** [MIT](LICENSE).
+- **Douay-Rheims text** (`data/`): public domain. The JSON structure is adapted from an MIT-licensed dataset. See [`NOTICE.md`](NOTICE.md) for provenance and attributions.
+- **NABRE:** © Confraternity of Christian Doctrine. It is not included here and needs a license from CCD before it can be loaded into a private deployment.

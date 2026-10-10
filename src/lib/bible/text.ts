@@ -20,7 +20,7 @@ export const TRANSLATIONS: Record<TranslationId, { name: string; notice: string 
   nabre: {
     name: "New American Bible, Revised Edition",
     notice:
-      "Scripture texts in this work are taken from the New American Bible, revised edition © 2010, 1991, 1986, 1970 Confraternity of Christian Doctrine, Washington, D.C. and are used by permission of the copyright owner. All Rights Reserved.",
+      "Scripture texts in this work are taken from the New American Bible, revised edition © 2010, 1991, 1986, 1970 Confraternity of Christian Doctrine, Washington, D.C. and are used by permission of the copyright owner. All Rights Reserved. No part of the New American Bible may be reproduced in any form without permission in writing from the copyright owner.",
   },
 };
 

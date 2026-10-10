@@ -51,7 +51,7 @@ USCCB keeps a list of translations [approved for private use and study](https://
 Douay-Rheims is public domain, but it is **not** on the USCCB list. The list does say that translations approved before 1983 by Rome or a local bishop are still OK. We use it only as **placeholder text in mockups and dev seeds** so no copyrighted text sits in the repo.
 
 ### Licensing reality
-None of these are public domain. The NABRE terms ([USCCB permissions](https://www.usccb.org/offices/new-american-bible/permissions)) allow less than 5,000 words without permission. A full Bible reader needs a license, even for one user.
+None of these are public domain. The NABRE terms ([USCCB permissions](https://www.usccb.org/offices/new-american-bible/permissions)) allow less than 5,000 words without permission. A full Bible reader needs a license, even for one user. The same page also says that "digital applications for sale or free distribution require a license and a royalty payment or permission fee." This app is neither sold nor distributed: it is a single private deployment. Still, the request should say plainly that it is a web app.
 
 **Action (owner):** email `nabperm@usccb.org` and ask for permission to use the NABRE text in a private, non-commercial, single-user, authentication-gated personal study app (not publicly accessible, not distributed). Fallback: check the [API.Bible](https://scripture.api.bible) catalog for a Catholic-edition text with an API key that allows personal apps.
 
