@@ -1,8 +1,8 @@
 # Open Bible
 
-A private, web-based Catholic Bible reader. Only you can sign in (passkeys only), it works on any device, and it scrolls continuously through all 73 books. Notes, highlights, and automatic progress tracking come in later phases. See [`docs/PLAN.md`](docs/PLAN.md).
+A private, web-based Catholic Bible reader. Only you can sign in (passkeys only), it works on any device, it scrolls continuously through all 73 books, and your notes sit right next to the text. Highlights and automatic progress tracking come next. See [`docs/PLAN.md`](docs/PLAN.md).
 
-**Status:** phase 1. Passkey auth, Postgres, continuous-scroll reader, book picker. The text is the public-domain **Douay-Rheims** as a placeholder until the NABRE license comes through.
+**Status:** phase 2. Passkey auth, continuous-scroll reader, book picker, and **inline Markdown notes**. On desktop, notes sit beside their verses in a resizable split. On phones they open in a bottom sheet. The text is the public-domain **Douay-Rheims** as a placeholder until the NABRE license comes through.
 
 | Doc | What's in it |
 |---|---|
@@ -10,9 +10,16 @@ A private, web-based Catholic Bible reader. Only you can sign in (passkeys only)
 | [`docs/wireframes.html`](docs/wireframes.html) | Low-fi wireframes for every screen |
 | [`docs/mockup.html`](docs/mockup.html) | Interactive hi-fi mockup of the split reader (phases 2–3) |
 
+## Using notes
+
+- **Add a note:** click a verse number, or select some text and press **✎ Note**. A note made from a selection keeps the quoted text.
+- **Write in Markdown:** `**bold**`, `*italic*`, lists, `> quotes`, links. Type `[[Jn 3:16]]` to link to a verse. Notes save automatically as you type. **Esc** finishes editing, and ⌘/Ctrl+B or I add formatting.
+- **Desktop:** drag the divider to resize the columns (the width is remembered). Hovering a note highlights its verse.
+- **Phones:** a ✎ in the margin marks verses that have notes. Tap it, or the ✎ count in the header, to open that chapter's notes.
+
 ## Stack
 
-Next.js 16 (App Router, Cache Components) · TypeScript · Tailwind CSS 4 · Postgres + Drizzle ORM · SimpleWebAuthn (passkeys) · iron-session (encrypted cookie) · Vercel.
+Next.js 16 (App Router, Cache Components) · TypeScript · Tailwind CSS 4 · Postgres + Drizzle ORM · SimpleWebAuthn (passkeys) · iron-session (encrypted cookie) · react-markdown + rehype-sanitize · Vercel.
 
 ## Deploy to Vercel (first time)
 
@@ -77,11 +84,13 @@ src/
     api/auth/…               WebAuthn options/verify for register + login, logout
     api/chapters/…           chapter JSON for continuous scroll
     api/passkeys/[id]        revoke a passkey
-  components/reader/         Reader (infinite scroll), BookPicker
+    api/notes/…              list/create (by chapter), update, delete notes
+  components/reader/         Reader (infinite scroll + split layout), BookPicker, SelectionPopover
+  components/notes/          note store, NoteCard (Markdown, autosave), aligned column, mobile sheet
   components/auth/ settings/ client-side passkey flows
   db/                        Drizzle schema + client
   lib/auth/                  session, setup token, relying-party config
-  lib/bible/                 canon (books.ts) and text access (text.ts)
+  lib/bible/                 canon (books.ts), text access (text.ts), reference parser (refs.ts)
   proxy.ts                   redirects anything without a session to /login
 data/douay-rheims.json       public-domain placeholder text (Project Gutenberg #8300)
 drizzle/                     SQL migrations

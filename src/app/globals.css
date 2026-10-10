@@ -58,3 +58,57 @@ body {
 dialog::backdrop {
   background: rgb(0 0 0 / 0.35);
 }
+
+/* A verse reached via a [[ref]] link flashes briefly. */
+.verse:target {
+  animation: verse-flash 2.4s ease-out;
+}
+@keyframes verse-flash {
+  0%,
+  40% {
+    background: var(--accent-soft);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+/* Rendered Markdown inside note cards. */
+.note-md > * + * {
+  margin-top: 0.4em;
+}
+.note-md ul {
+  list-style: disc;
+  padding-left: 1.2em;
+}
+.note-md ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.note-md blockquote {
+  border-left: 3px solid var(--line);
+  padding-left: 0.6em;
+  color: var(--muted);
+}
+.note-md h1,
+.note-md h2,
+.note-md h3 {
+  font-weight: 600;
+}
+.note-md h1 {
+  font-size: 1.1em;
+}
+.note-md code {
+  background: var(--bg);
+  border-radius: 4px;
+  padding: 0 0.25em;
+  font-size: 0.9em;
+}
+.note-md a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.note-md a.verse-link {
+  text-decoration-style: dotted;
+}

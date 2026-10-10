@@ -14,7 +14,8 @@ export function getDb(): Db {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL is not set");
     // prepare: false keeps us compatible with pooled (PgBouncer) connection strings.
-    g.openBibleDb = drizzle(postgres(url, { prepare: false, max: 5 }), { schema });
+    const max = Number(process.env.DATABASE_POOL_MAX) || 5;
+    g.openBibleDb = drizzle(postgres(url, { prepare: false, max }), { schema });
   }
   return g.openBibleDb;
 }

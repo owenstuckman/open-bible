@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import type { Chapter, ChapterRef } from "@/lib/bible/text";
 import { getBook } from "@/lib/bible/books";
 import { LAST_READ_KEY } from "@/components/ResumeRedirect";
+import { verseAnchor } from "@/lib/bible/refs";
+import { NotesColumn } from "@/components/notes/NotesColumn";
+import { NotesSheet } from "@/components/notes/NotesSheet";
+import { chapterKey, useNotes, type ClientNote, type NotesStore } from "@/components/notes/useNotes";
 import { BookPicker } from "./BookPicker";
+import { SelectionPopover, type VerseSelection } from "./SelectionPopover";
 
 type Props = {
   initial: Chapter;
@@ -16,6 +21,9 @@ type Props = {
 };
 
 const LOAD_MARGIN = "1500px 0px";
+const SPLIT_KEY = "ob:split";
+const SPLIT_DEFAULT = 56;
+const clampSplit = (n: number) => Math.min(72, Math.max(38, n));
 const refKey = (r: ChapterRef) => `${r.book}.${r.chapter}`;
 const refUrl = (r: ChapterRef) => `/read/${r.book}/${r.chapter}`;
 
@@ -28,9 +36,23 @@ async function fetchChapter(ref: ChapterRef): Promise<Chapter> {
   return res.json();
 }
 
+function useIsDesktop() {
+  const [desktop, setDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+  return desktop;
+}
+
 /**
- * Continuous-scroll reader. Starts at one chapter and streams neighbours in
- * as you approach either end; the header and URL follow the chapter in view.
+ * Continuous-scroll reader with notes. Starts at one chapter and streams
+ * neighbours in as you approach either end; the header and URL follow the
+ * chapter in view. Desktop shows notes beside their verses; smaller screens
+ * use a bottom sheet.
  */
 export function Reader({ initial, chapterCounts, translationName, notice }: Props) {
   const router = useRouter();
@@ -38,10 +60,18 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
   const [current, setCurrent] = useState<ChapterRef>(initial);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sheet, setSheet] = useState<{ open: boolean; ref: ChapterRef; verse: number | null }>({
+    open: false,
+    ref: initial,
+    verse: null,
+  });
+  const notes = useNotes();
+  const isDesktop = useIsDesktop();
 
   const topSentinel = useRef<HTMLDivElement>(null);
   const bottomSentinel = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const columnsRef = useRef<HTMLDivElement>(null);
   const loading = useRef({ prev: false, next: false });
   const prependAnchor = useRef<{ el: HTMLElement; top: number } | null>(null);
   // Don't pull in earlier chapters until the reader actually scrolls; otherwise
@@ -78,7 +108,7 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     try {
       const ch = await fetchChapter(first.prev);
       // Remember where the current first chapter sits so we can keep it still.
-      const el = document.querySelector<HTMLElement>(`[data-chapter="${refKey(first)}"]`);
+      const el = columnsRef.current?.querySelector<HTMLElement>(`[data-chapter="${refKey(first)}"]`);
       if (el) prependAnchor.current = { el, top: el.getBoundingClientRect().top };
       setChapters((cs) => (cs.some((c) => refKey(c) === refKey(ch)) ? cs : [ch, ...cs]));
     } catch (e) {
@@ -95,6 +125,12 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     prependAnchor.current = null;
     window.scrollBy(0, anchor.el.getBoundingClientRect().top - anchor.top);
   }, [chapters]);
+
+  // Fetch notes for every chapter as it streams in.
+  const { loadChapter } = notes;
+  useEffect(() => {
+    for (const ch of chapters) loadChapter(ch.book, ch.chapter);
+  }, [chapters, loadChapter]);
 
   // Load more when a sentinel gets near the viewport.
   useEffect(() => {
@@ -121,7 +157,8 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
         const line = (headerRef.current?.offsetHeight ?? 0) + 80;
-        const sections = document.querySelectorAll<HTMLElement>("[data-chapter]");
+        // Scoped to this reader: Next keeps the previous page's DOM around (hidden).
+        const sections = columnsRef.current?.querySelectorAll<HTMLElement>("[data-chapter]") ?? [];
         let inView: HTMLElement | undefined;
         for (const s of sections) {
           if (s.getBoundingClientRect().top <= line) inView = s;
@@ -150,7 +187,59 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     document.title = `${book?.name ?? current.book} ${current.chapter} · Open Bible`;
   }, [current]);
 
+  // Arriving at /read/BOOK/N#v-BOOK-N-V (e.g. from a [[ref]] link): bring that verse into view.
+  useEffect(() => {
+    const id = decodeURIComponent(window.location.hash.slice(1));
+    if (id) columnsRef.current?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ block: "center" });
+  }, []);
+
+  // The split lives in a CSS variable, written straight to the DOM so dragging
+  // doesn't re-render every chapter.
+  const setSplit = (pct: number) => columnsRef.current?.style.setProperty("--split", `${pct}%`);
+  useEffect(() => {
+    try {
+      const saved = Number(localStorage.getItem(SPLIT_KEY));
+      if (saved) columnsRef.current?.style.setProperty("--split", `${clampSplit(saved)}%`);
+    } catch {}
+  }, []);
+
+  function startResize(e: React.PointerEvent<HTMLDivElement>) {
+    const bar = e.currentTarget;
+    const box = columnsRef.current?.getBoundingClientRect();
+    if (!box) return;
+    bar.setPointerCapture(e.pointerId);
+    let pct = parseFloat(columnsRef.current?.style.getPropertyValue("--split") ?? "") || SPLIT_DEFAULT;
+    const move = (ev: PointerEvent) => {
+      pct = clampSplit(((ev.clientX - box.left) / box.width) * 100);
+      setSplit(pct);
+    };
+    const up = () => {
+      bar.removeEventListener("pointermove", move);
+      try {
+        localStorage.setItem(SPLIT_KEY, String(Math.round(pct)));
+      } catch {}
+    };
+    bar.addEventListener("pointermove", move);
+    bar.addEventListener("pointerup", up, { once: true });
+  }
+
+  const addNote = useCallback(
+    (book: string, chapter: number, verseStart: number, verseEnd?: number, quote?: string) => {
+      notes.addDraft(book, chapter, verseStart, verseEnd, quote ?? null);
+      if (!isDesktop) setSheet({ open: true, ref: { book, chapter }, verse: verseStart });
+    },
+    [notes, isDesktop],
+  );
+
+  const onSelectionNote = useCallback(
+    (s: VerseSelection) => addNote(s.book, s.chapter, s.verseStart, s.verseEnd, s.quote),
+    [addNote],
+  );
+
+  const openSheet = (ref: ChapterRef, verse: number | null = null) => setSheet({ open: true, ref, verse });
+
   const currentBook = getBook(current.book);
+  const currentNotes = notes.byChapter[refKey(current)] ?? [];
 
   return (
     <div className="reader-scroll min-h-dvh">
@@ -158,7 +247,7 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
         ref={headerRef}
         className="sticky top-0 z-20 border-b border-line bg-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur"
       >
-        <div className="mx-auto flex max-w-5xl items-center gap-3 px-4 py-2.5">
+        <div className="mx-auto flex max-w-[90rem] items-center gap-3 px-4 py-2.5 lg:px-6">
           <Link href="/" className="hidden font-serif text-lg font-semibold text-accent sm:block">
             ✝ Open Bible
           </Link>
@@ -171,6 +260,13 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
           </button>
           <span className="flex-1" />
           <span className="hidden text-xs text-muted md:inline">{translationName}</span>
+          <button
+            onClick={() => openSheet(current)}
+            className="flex h-8 items-center gap-1 rounded-lg border border-line px-2.5 text-sm transition hover:border-ink lg:hidden"
+            aria-label={`Notes for this chapter (${currentNotes.length})`}
+          >
+            ✎ <span className="text-xs">{currentNotes.length}</span>
+          </button>
           <Link
             href="/settings"
             className="grid size-8 place-items-center rounded-lg border border-line transition hover:border-ink"
@@ -182,29 +278,69 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
         </div>
       </header>
 
-      <main className="mx-auto max-w-2xl px-5 pb-[40vh] sm:px-8">
-        <div ref={topSentinel} aria-hidden className="h-px" />
+      <main className="mx-auto max-w-[90rem] pb-[40vh] lg:px-6">
+        <div
+          ref={columnsRef}
+          className="relative"
+          style={{ "--split": `${SPLIT_DEFAULT}%` } as React.CSSProperties}
+        >
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize notes column"
+            onPointerDown={startResize}
+            className="group absolute inset-y-0 z-10 hidden w-4 -translate-x-1/2 cursor-col-resize lg:block"
+            style={{ left: "var(--split)" }}
+          >
+            <div className="mx-auto h-full w-px bg-line transition group-hover:w-0.5 group-hover:bg-accent" />
+          </div>
 
-        {chapters.map((ch) => (
-          <ChapterView key={refKey(ch)} chapter={ch} />
-        ))}
+          <div ref={topSentinel} aria-hidden className="h-px" />
 
-        {error && (
-          <p role="alert" className="py-6 text-center text-sm text-accent">
-            {error}.{" "}
-            <button className="underline" onClick={() => { setError(null); loadNext(); }}>
-              Retry
-            </button>
-          </p>
-        )}
-        <div ref={bottomSentinel} aria-hidden className="h-px" />
-        {last.next ? (
-          <p className="py-10 text-center text-sm text-muted">Loading…</p>
-        ) : (
-          <p className="py-16 text-center font-serif text-muted">✝ End of the Bible</p>
-        )}
-        <p className="border-t border-line pt-4 text-xs text-muted">{notice}</p>
+          {chapters.map((ch) => (
+            <ChapterRow
+              key={refKey(ch)}
+              chapter={ch}
+              notes={notes.byChapter[refKey(ch)] ?? []}
+              store={notes}
+              onAddNote={(v) => addNote(ch.book, ch.chapter, v)}
+              onOpenNotes={(v) => openSheet(ch, v)}
+            />
+          ))}
+
+          {error && (
+            <p role="alert" className="py-6 text-center text-sm text-accent">
+              {error}.{" "}
+              <button className="underline" onClick={() => { setError(null); loadNext(); }}>
+                Retry
+              </button>
+            </p>
+          )}
+          <div ref={bottomSentinel} aria-hidden className="h-px" />
+          <div className="lg:grid lg:grid-cols-[var(--split)_minmax(0,1fr)]">
+            <div className="mx-auto w-full max-w-2xl px-5 sm:px-8">
+              {last.next ? (
+                <p className="py-10 text-center text-sm text-muted">Loading…</p>
+              ) : (
+                <p className="py-16 text-center font-serif text-muted">✝ End of the Bible</p>
+              )}
+              <p className="border-t border-line pt-4 text-xs text-muted">{notice}</p>
+            </div>
+          </div>
+        </div>
       </main>
+
+      <SelectionPopover rootRef={columnsRef} onNote={onSelectionNote} />
+
+      <NotesSheet
+        open={sheet.open}
+        onClose={() => setSheet((s) => ({ ...s, open: false }))}
+        book={sheet.ref.book}
+        chapter={sheet.ref.chapter}
+        notes={notes.byChapter[chapterKey(sheet.ref.book, sheet.ref.chapter)] ?? []}
+        focusVerse={sheet.verse}
+        store={notes}
+      />
 
       <BookPicker
         open={pickerOpen}
@@ -216,29 +352,90 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
   );
 }
 
-function ChapterView({ chapter }: { chapter: Chapter }) {
+type RowProps = {
+  chapter: Chapter;
+  notes: ClientNote[];
+  store: NotesStore;
+  onAddNote: (verse: number) => void;
+  onOpenNotes: (verse: number) => void;
+};
+
+/** One chapter: Bible text on the left, its notes on the right (desktop). */
+function ChapterRow({ chapter, notes, store, onAddNote, onOpenNotes }: RowProps) {
+  const versesRef = useRef<HTMLDivElement>(null);
+  const [hoverNote, setHoverNote] = useState<ClientNote | null>(null);
+  const [hoverVerse, setHoverVerse] = useState<number | null>(null);
   const isBookStart = chapter.chapter === 1;
+
+  const noted = new Set<number>();
+  for (const n of notes) for (let v = n.verseStart; v <= n.verseEnd; v++) noted.add(v);
+
   return (
-    <section data-chapter={refKey(chapter)} className="scroll-mt-16 pt-10 first:pt-8">
-      {isBookStart ? (
-        <h1 className="mb-8 border-b border-line pb-6 text-center font-serif text-4xl font-semibold tracking-tight sm:text-5xl">
-          {chapter.bookName}
-        </h1>
-      ) : null}
-      <h2 className="mb-4 flex items-baseline gap-3 font-serif">
-        <span className="text-4xl font-semibold text-accent">{chapter.chapter}</span>
-        <span className="text-xs tracking-[0.18em] text-muted uppercase">
-          {chapter.bookName}
-        </span>
-      </h2>
-      <div className="font-serif text-[1.15rem] leading-[1.8] sm:text-[1.2rem]">
-        {chapter.verses.map((v) => (
-          <p key={v.n} id={`v-${chapter.book}-${chapter.chapter}-${v.n}`} className="verse mb-1.5">
-            <sup>{v.n}</sup>
-            {v.text}
-          </p>
-        ))}
+    <section
+      data-chapter={refKey(chapter)}
+      className="pt-10 first-of-type:pt-8 lg:grid lg:grid-cols-[var(--split)_minmax(0,1fr)]"
+    >
+      <div className="mx-auto w-full max-w-2xl px-5 sm:px-8">
+        {isBookStart ? (
+          <h1 className="mb-8 border-b border-line pb-6 text-center font-serif text-4xl font-semibold tracking-tight sm:text-5xl">
+            {chapter.bookName}
+          </h1>
+        ) : null}
+        <h2 className="mb-4 flex items-baseline gap-3 font-serif">
+          <span className="text-4xl font-semibold text-accent">{chapter.chapter}</span>
+          <span className="text-xs tracking-[0.18em] text-muted uppercase">{chapter.bookName}</span>
+        </h2>
+        <div
+          ref={versesRef}
+          className="font-serif text-[1.15rem] leading-[1.8] sm:text-[1.2rem]"
+          onMouseLeave={() => setHoverVerse(null)}
+        >
+          {chapter.verses.map((v) => {
+            const inHoveredNote = hoverNote && v.n >= hoverNote.verseStart && v.n <= hoverNote.verseEnd;
+            return (
+              <p
+                key={v.n}
+                id={verseAnchor(chapter.book, chapter.chapter, v.n)}
+                data-verse={v.n}
+                onMouseEnter={() => setHoverVerse(v.n)}
+                className={`verse relative -mx-1 mb-1.5 scroll-mt-24 rounded px-1 transition-colors ${
+                  inHoveredNote ? "bg-accent-soft" : ""
+                }`}
+              >
+                {noted.has(v.n) && (
+                  <button
+                    onClick={() => onOpenNotes(v.n)}
+                    className="absolute top-[0.25em] -left-[1.2rem] grid size-6 place-items-center font-sans text-xs text-accent lg:hidden"
+                    aria-label={`Notes on verse ${v.n}`}
+                  >
+                    ✎
+                  </button>
+                )}
+                <sup
+                  role="button"
+                  tabIndex={0}
+                  title="Add a note to this verse"
+                  onClick={() => onAddNote(v.n)}
+                  onKeyDown={(e) => e.key === "Enter" && onAddNote(v.n)}
+                  className="cursor-pointer rounded hover:bg-accent-soft"
+                >
+                  {v.n}
+                </sup>
+                {v.text}
+              </p>
+            );
+          })}
+        </div>
       </div>
+      <aside className="hidden pr-2 pl-8 lg:block" aria-label={`Notes on ${chapter.bookName} ${chapter.chapter}`}>
+        <NotesColumn
+          notes={notes}
+          versesRef={versesRef}
+          store={store}
+          activeVerse={hoverVerse}
+          onHoverNote={setHoverNote}
+        />
+      </aside>
     </section>
   );
 }

@@ -187,12 +187,13 @@ highlights (id UUID PK, user_id TEXT,
             translation TEXT,                    -- offsets are translation-specific
             created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
 
-notes      (id UUID PK, user_id TEXT,
-            start_ref TEXT, end_ref TEXT,        -- verse range anchor
+notes      (id UUID PK,                         -- ✅ built in phase 2
+            book_id TEXT, chapter INT,           -- a note's range stays within one chapter
+            verse_start INT, verse_end INT,
             quote TEXT NULL,                     -- selected text at creation (context)
             body_md TEXT,                        -- Markdown source; rendered client-side
-            highlight_id UUID NULL REFERENCES highlights,
             created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
+            -- phase 3 adds highlight_id UUID NULL REFERENCES highlights
 
 verse_reads (user_id TEXT, book_id TEXT, chapter INT, verse INT,
              first_read_at TIMESTAMPTZ,
@@ -227,7 +228,7 @@ POST   /api/notes        PATCH/DELETE /api/notes/:id
 |---|---|---|
 | **0. Decide** | ✅ Decisions made (see top). ⏳ NABRE permission email sent by owner | License reply received |
 | **1. Skeleton** ✅ | Next.js app on Vercel, Neon Postgres + Drizzle, **passkey auth** (setup, login, add device), Douay-Rheims dev seed (73 books), book/chapter picker, **continuous-scroll reader** | I can enroll a passkey and read John 1 → 2 by scrolling, on my phone |
-| **2. Split view + notes** | Resizable split, verse-anchored **Markdown** notes with aligned layout, autosave, mobile bottom sheet | Notes appear beside their verse on desktop and in a sheet on mobile |
+| **2. Split view + notes** ✅ | Resizable split, verse-anchored **Markdown** notes with aligned layout, autosave, mobile bottom sheet | Notes appear beside their verse on desktop and in a sheet on mobile |
 | **3. Highlights** | Selection popover, 4 colors, multi-verse ranges, highlight → note | Highlights persist and render after reload on another device |
 | **4. Progress** | Auto read tracking, resume, progress page | Reading Mark straight through shows Mark at 100% |
 | **5. Page mode** | Page-by-page toggle, ← → keys, swipe | Toggling keeps my position |

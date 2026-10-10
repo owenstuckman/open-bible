@@ -1,11 +1,13 @@
 import {
   bigint,
   boolean,
+  index,
   integer,
   pgTable,
   primaryKey,
   text,
   timestamp,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 // Auth: one owner, any number of passkeys (phone, laptop, ...).
@@ -39,4 +41,22 @@ export const verses = pgTable(
     text: text("text").notNull(),
   },
   (t) => [primaryKey({ columns: [t.translation, t.bookId, t.chapter, t.verse] })],
+);
+
+// Notes are anchored to a verse range within one chapter. Refs are USFM book
+// codes + numbers, so they survive a translation swap (modulo versification).
+export const notes = pgTable(
+  "notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    bookId: text("book_id").notNull(),
+    chapter: integer("chapter").notNull(),
+    verseStart: integer("verse_start").notNull(),
+    verseEnd: integer("verse_end").notNull(),
+    quote: text("quote"), // selected text when the note was created, for context
+    bodyMd: text("body_md").notNull().default(""),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("notes_chapter_idx").on(t.bookId, t.chapter)],
 );
