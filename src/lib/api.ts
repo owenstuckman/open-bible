@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { getBook } from "@/lib/bible/books";
 import { isOwner } from "@/lib/auth/session";
 import type { notes } from "@/db/schema";
-import type { Note } from "./types";
+import type { Note } from "@/lib/notes/types";
 
 export function unauthorized() {
   return NextResponse.json({ error: "Not signed in." }, { status: 401 });

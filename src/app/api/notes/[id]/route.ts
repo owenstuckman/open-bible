@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { notes } from "@/db/schema";
 import { MAX_NOTE_LENGTH } from "@/lib/notes/types";
-import { badRequest, canWrite, toNote, unauthorized } from "@/lib/notes/server";
+import { badRequest, canWrite, toNote, unauthorized } from "@/lib/api";
 
 type Ctx = { params: Promise<{ id: string }> };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

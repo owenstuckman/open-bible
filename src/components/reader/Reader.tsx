@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Chapter, ChapterRef } from "@/lib/bible/text";
 import { getBook } from "@/lib/bible/books";
-import { LAST_READ_KEY } from "@/components/ResumeRedirect";
 import { verseAnchor } from "@/lib/bible/refs";
 import { NotesColumn } from "@/components/notes/NotesColumn";
 import { NotesSheet } from "@/components/notes/NotesSheet";
@@ -14,6 +13,9 @@ import { BookPicker } from "./BookPicker";
 import { ActionPopover, useVerseSelection } from "./ActionPopover";
 import { useHighlights, type ClientHighlight } from "@/components/highlights/useHighlights";
 import { segmentVerse } from "@/lib/highlights/types";
+import type { ProgressSummary } from "@/lib/progress/server";
+import { formatPct } from "@/lib/progress/format";
+import { useReadingTracker } from "./useReadingTracker";
 
 type Props = {
   initial: Chapter;
@@ -70,6 +72,8 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
   const notes = useNotes();
   const highlights = useHighlights();
   const [activeHl, setActiveHl] = useState<{ h: ClientHighlight; rect: DOMRect } | null>(null);
+  const [completed, setCompleted] = useState<Set<string>>(new Set());
+  const [totalChapters, setTotalChapters] = useState(0);
   const isDesktop = useIsDesktop();
 
   const topSentinel = useRef<HTMLDivElement>(null);
@@ -130,6 +134,41 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     window.scrollBy(0, anchor.el.getBoundingClientRect().top - anchor.top);
   }, [chapters]);
 
+  // Which chapters are already read (for the header bar and chapter badges).
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/progress/summary")
+      .then((r) => (r.ok ? (r.json() as Promise<ProgressSummary>) : null))
+      .then((s) => {
+        if (!s || cancelled) return;
+        setCompleted(new Set(Object.entries(s.completed).flatMap(([b, chs]) => chs.map((c) => `${b}.${c}`))));
+        setTotalChapters(s.totals.chapters);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useReadingTracker(columnsRef, headerRef, chapters.length, (keys) =>
+    setCompleted((cur) => new Set([...cur, ...keys])),
+  );
+
+  const toggleRead = useCallback((ch: ChapterRef, read: boolean) => {
+    const key = refKey(ch);
+    setCompleted((cur) => {
+      const next = new Set(cur);
+      if (read) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+    fetch("/api/progress/chapter", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ book: ch.book, chapter: ch.chapter, read }),
+    }).catch(() => {});
+  }, []);
+
   // Fetch notes and highlights for every chapter as it streams in.
   const { loadChapter } = notes;
   const { loadChapter: loadHighlights } = highlights;
@@ -188,17 +227,14 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
   useEffect(() => {
     const url = refUrl(current);
     if (window.location.pathname !== url) window.history.replaceState(null, "", url);
-    try {
-      localStorage.setItem(LAST_READ_KEY, url);
-    } catch {}
     const book = getBook(current.book);
     document.title = `${book?.name ?? current.book} ${current.chapter} · Open Bible`;
   }, [current]);
 
-  // Arriving at /read/BOOK/N#v-BOOK-N-V (e.g. from a [[ref]] link): bring that verse into view.
+  // Arriving at /read/BOOK/N#v-BOOK-N-V (resume, or a [[ref]] link): put that verse at the top.
   useEffect(() => {
     const id = decodeURIComponent(window.location.hash.slice(1));
-    if (id) columnsRef.current?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ block: "center" });
+    if (id) columnsRef.current?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ block: "start" });
   }, []);
 
   // The split lives in a CSS variable, written straight to the DOM so dragging
@@ -248,6 +284,7 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
   const openSheet = (ref: ChapterRef, verse: number | null = null) => setSheet({ open: true, ref, verse });
 
   const currentBook = getBook(current.book);
+  const pct = formatPct(completed.size, totalChapters);
   const currentNotes = notes.byChapter[refKey(current)] ?? [];
 
   return (
@@ -268,7 +305,18 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
             {currentBook?.name ?? current.book} {current.chapter} <span className="text-muted">▾</span>
           </button>
           <span className="flex-1" />
-          <span className="hidden text-xs text-muted md:inline">{translationName}</span>
+          <span className="hidden text-xs text-muted xl:inline">{translationName}</span>
+          <Link
+            href="/progress"
+            className="flex h-8 items-center gap-2 rounded-lg border border-line px-2.5 text-xs text-muted transition hover:border-ink"
+            title="Reading progress"
+            aria-label={`Reading progress: ${pct} of the Bible`}
+          >
+            <span className="hidden h-1.5 w-20 overflow-hidden rounded-full bg-line sm:block">
+              <span className="block h-full rounded-full bg-accent" style={{ width: pct }} />
+            </span>
+            {pct}
+          </Link>
           <button
             onClick={() => openSheet(current)}
             className="flex h-8 items-center gap-1 rounded-lg border border-line px-2.5 text-sm transition hover:border-ink lg:hidden"
@@ -315,6 +363,8 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
               highlights={highlights.byChapter[refKey(ch)] ?? []}
               onHighlightClick={(h, rect) => setActiveHl({ h, rect })}
               onAddNote={(v) => addNote(ch.book, ch.chapter, v)}
+              read={completed.has(refKey(ch))}
+              onToggleRead={(r) => toggleRead(ch, r)}
               onOpenNotes={(v) => openSheet(ch, v)}
             />
           ))}
@@ -406,10 +456,22 @@ type RowProps = {
   store: NotesStore;
   onAddNote: (verse: number) => void;
   onOpenNotes: (verse: number) => void;
+  read: boolean;
+  onToggleRead: (read: boolean) => void;
 };
 
 /** One chapter: Bible text on the left, its notes on the right (desktop). */
-function ChapterRow({ chapter, notes, highlights, onHighlightClick, store, onAddNote, onOpenNotes }: RowProps) {
+function ChapterRow({
+  chapter,
+  notes,
+  highlights,
+  onHighlightClick,
+  store,
+  onAddNote,
+  onOpenNotes,
+  read,
+  onToggleRead,
+}: RowProps) {
   const versesRef = useRef<HTMLDivElement>(null);
   const [hoverNote, setHoverNote] = useState<ClientNote | null>(null);
   const [hoverVerse, setHoverVerse] = useState<number | null>(null);
@@ -432,6 +494,17 @@ function ChapterRow({ chapter, notes, highlights, onHighlightClick, store, onAdd
         <h2 className="mb-4 flex items-baseline gap-3 font-serif">
           <span className="text-4xl font-semibold text-accent">{chapter.chapter}</span>
           <span className="text-xs tracking-[0.18em] text-muted uppercase">{chapter.bookName}</span>
+          <span className="flex-1" />
+          <button
+            onClick={() => onToggleRead(!read)}
+            aria-pressed={read}
+            title={read ? "Mark as unread" : "Mark as read"}
+            className={`self-center rounded-full border px-2.5 py-0.5 font-sans text-xs transition ${
+              read ? "border-accent bg-accent-soft text-accent" : "border-line text-muted hover:border-ink"
+            }`}
+          >
+            {read ? "✓ Read" : "Mark read"}
+          </button>
         </h2>
         <div
           ref={versesRef}
@@ -446,7 +519,7 @@ function ChapterRow({ chapter, notes, highlights, onHighlightClick, store, onAdd
                 id={verseAnchor(chapter.book, chapter.chapter, v.n)}
                 data-verse={v.n}
                 onMouseEnter={() => setHoverVerse(v.n)}
-                className={`verse relative -mx-1 mb-1.5 scroll-mt-24 rounded px-1 transition-colors ${
+                className={`verse relative -mx-1 mb-1.5 scroll-mt-[4.5rem] rounded px-1 transition-colors ${
                   inHoveredNote ? "bg-accent-soft" : ""
                 }`}
               >

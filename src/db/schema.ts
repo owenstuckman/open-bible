@@ -82,3 +82,36 @@ export const highlights = pgTable(
   },
   (t) => [index("highlights_chapter_idx").on(t.translation, t.bookId, t.chapter)],
 );
+
+// Reading progress (single user). Verse reads are keyed by USFM ref, so they
+// carry over between translations.
+export const verseReads = pgTable(
+  "verse_reads",
+  {
+    bookId: text("book_id").notNull(),
+    chapter: integer("chapter").notNull(),
+    verse: integer("verse").notNull(),
+    firstReadAt: timestamp("first_read_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.bookId, t.chapter, t.verse] })],
+);
+
+export const chapterProgress = pgTable(
+  "chapter_progress",
+  {
+    bookId: text("book_id").notNull(),
+    chapter: integer("chapter").notNull(),
+    completedAt: timestamp("completed_at", { withTimezone: true }).notNull().defaultNow(),
+    manual: boolean("manual").notNull().default(false), // marked by hand rather than by reading
+  },
+  (t) => [primaryKey({ columns: [t.bookId, t.chapter] })],
+);
+
+// Where you left off; one row (id = 1).
+export const readingState = pgTable("reading_state", {
+  id: integer("id").primaryKey().default(1),
+  bookId: text("book_id").notNull(),
+  chapter: integer("chapter").notNull(),
+  verse: integer("verse").notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

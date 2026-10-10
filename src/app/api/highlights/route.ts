@@ -4,7 +4,7 @@ import { getDb } from "@/db";
 import { highlights } from "@/db/schema";
 import { activeTranslation } from "@/lib/bible/text";
 import { COLORS, type Color } from "@/lib/highlights/types";
-import { badRequest, canRead, canWrite, positiveInt, unauthorized, validBook } from "@/lib/notes/server";
+import { badRequest, canRead, canWrite, positiveInt, unauthorized, validBook } from "@/lib/api";
 
 const offset = (n: unknown): n is number => Number.isInteger(n) && (n as number) >= 0 && (n as number) <= 10_000;
 const toJson = (row: typeof highlights.$inferSelect) => ({ ...row, createdAt: row.createdAt.toISOString() });

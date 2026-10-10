@@ -1,8 +1,8 @@
 # Open Bible
 
-A private, web-based Catholic Bible reader. Only you can sign in (passkeys only), it works on any device, it scrolls continuously through all 73 books, and your notes and highlights sit right on the text. Automatic progress tracking comes next. See [`docs/PLAN.md`](docs/PLAN.md).
+A private, web-based Catholic Bible reader. Only you can sign in (passkeys only), it works on any device, it scrolls continuously through all 73 books, and your notes and highlights sit right on the text. It also keeps track of what you've read and where you left off. See [`docs/PLAN.md`](docs/PLAN.md).
 
-**Status:** phase 3. Passkey auth, continuous-scroll reader, book picker, **inline Markdown notes**, and **highlights**. On desktop, notes sit beside their verses in a resizable split. On phones they open in a bottom sheet. The text is the public-domain **Douay-Rheims** as a placeholder until the NABRE license comes through.
+**Status:** phase 4. Passkey auth, continuous-scroll reader, book picker, **inline Markdown notes**, **highlights**, and **automatic progress tracking** with cross-device resume. On desktop, notes sit beside their verses in a resizable split. On phones they open in a bottom sheet. The text is the public-domain **Douay-Rheims** as a placeholder until the NABRE license comes through.
 
 | Doc | What's in it |
 |---|---|
@@ -17,6 +17,13 @@ A private, web-based Catholic Bible reader. Only you can sign in (passkeys only)
 - **Write in Markdown:** `**bold**`, `*italic*`, lists, `> quotes`, links. Type `[[Jn 3:16]]` to link to a verse. Notes save automatically as you type. **Esc** finishes editing, and ⌘/Ctrl+B or I add formatting.
 - **Desktop:** drag the divider to resize the columns (the width is remembered). Hovering a note highlights its verse.
 - **Phones:** a ✎ in the margin marks verses that have notes. Tap it, or the ✎ count in the header, to open that chapter's notes.
+
+## Progress
+
+- A verse counts as read once it stays on screen for about 1.5 seconds. Skimming past doesn't count.
+- A chapter is marked **✓ Read** once you've read about 90% of its verses. Use the button beside the chapter number to mark it read or unread by hand.
+- Opening the app (`/`) on any device takes you back to the verse you were reading.
+- The header shows how much of the Bible you've read. Click it for the **Progress** page, which has every book and chapter, totals, and a Continue button.
 
 ## Stack
 
@@ -87,8 +94,11 @@ src/
     api/passkeys/[id]        revoke a passkey
     api/notes/…              list/create (by chapter), update, delete notes
     api/highlights/…         list/create (by chapter), recolor, delete highlights
+    api/progress/…           batched verse reads + position, manual mark, summary
+    progress/                progress page (books × chapters grid)
   components/reader/         Reader (infinite scroll + split layout), BookPicker, ActionPopover (selection → highlight/note)
   components/highlights/     highlight store
+  lib/progress/              completion rules, summary, resume position
   components/notes/          note store, NoteCard (Markdown, autosave), aligned column, mobile sheet
   components/auth/ settings/ client-side passkey flows
   db/                        Drizzle schema + client

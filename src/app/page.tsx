@@ -1,7 +1,22 @@
-import { ResumeRedirect } from "@/components/ResumeRedirect";
+import { Suspense } from "react";
+import { redirect } from "next/navigation";
+import { connection } from "next/server";
+import { verseAnchor } from "@/lib/bible/refs";
+import { getPosition } from "@/lib/progress/server";
 
-// Sends you back to the last chapter you were reading on this device.
-// (Cross-device resume arrives with progress tracking in phase 4.)
+// "/" picks up where you left off, on any device.
 export default function Home() {
-  return <ResumeRedirect />;
+  return (
+    <Suspense fallback={null}>
+      <Resume />
+    </Suspense>
+  );
+}
+
+async function Resume(): Promise<React.ReactNode> {
+  await connection();
+  const pos = await getPosition().catch(() => null);
+  return redirect(
+    pos ? `/read/${pos.bookId}/${pos.chapter}#${verseAnchor(pos.bookId, pos.chapter, pos.verse)}` : "/read/GEN/1",
+  );
 }

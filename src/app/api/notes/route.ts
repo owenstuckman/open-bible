@@ -3,7 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { notes } from "@/db/schema";
 import { MAX_NOTE_LENGTH, MAX_QUOTE_LENGTH } from "@/lib/notes/types";
-import { badRequest, canRead, canWrite, positiveInt, toNote, unauthorized, validBook } from "@/lib/notes/server";
+import { badRequest, canRead, canWrite, positiveInt, toNote, unauthorized, validBook } from "@/lib/api";
 
 // GET /api/notes?book=JHN&chapter=1 → notes for one chapter, in verse order.
 export async function GET(req: NextRequest) {

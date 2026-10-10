@@ -197,16 +197,17 @@ notes      (id UUID PK,                         -- ✅ built in phase 2
             created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
             -- a note made from a highlight copies its text as the quote (no FK needed)
 
-verse_reads (user_id TEXT, book_id TEXT, chapter INT, verse INT,
-             first_read_at TIMESTAMPTZ,
-             PRIMARY KEY (user_id, book_id, chapter, verse))
+-- ✅ built in phase 4 (single user, so no user_id columns)
+verse_reads (book_id TEXT, chapter INT, verse INT, first_read_at TIMESTAMPTZ,
+             PRIMARY KEY (book_id, chapter, verse))
 
-chapter_progress (user_id TEXT, book_id TEXT, chapter INT,
-                  completed_at TIMESTAMPTZ NULL, manual BOOLEAN DEFAULT false,
-                  PRIMARY KEY (user_id, book_id, chapter))
+chapter_progress (book_id TEXT, chapter INT, completed_at TIMESTAMPTZ,
+                  manual BOOLEAN DEFAULT false,
+                  PRIMARY KEY (book_id, chapter))
 
-reading_state (user_id TEXT PK, book_id TEXT, chapter INT, verse INT,
-               mode TEXT, split_ratio REAL, updated_at TIMESTAMPTZ)
+reading_state (id INT PK DEFAULT 1, book_id TEXT, chapter INT, verse INT,
+               updated_at TIMESTAMPTZ)
+-- Split ratio is a per-device preference, kept in localStorage instead.
 ```
 
 There are about 35k verses, so `verse_reads` stays small for a single user even after reading the whole Bible.
@@ -232,7 +233,7 @@ POST   /api/notes        PATCH/DELETE /api/notes/:id
 | **1. Skeleton** ✅ | Next.js app on Vercel, Neon Postgres + Drizzle, **passkey auth** (setup, login, add device), Douay-Rheims dev seed (73 books), book/chapter picker, **continuous-scroll reader** | I can enroll a passkey and read John 1 → 2 by scrolling, on my phone |
 | **2. Split view + notes** ✅ | Resizable split, verse-anchored **Markdown** notes with aligned layout, autosave, mobile bottom sheet | Notes appear beside their verse on desktop and in a sheet on mobile |
 | **3. Highlights** ✅ | Selection popover, 4 colors, multi-verse ranges, highlight → note | Highlights persist and render after reload on another device |
-| **4. Progress** | Auto read tracking, resume, progress page | Reading Mark straight through shows Mark at 100% |
+| **4. Progress** ✅ | Auto read tracking, resume, progress page | Reading Mark straight through shows Mark at 100% |
 | **5. Page mode** | Page-by-page toggle, ← → keys, swipe | Toggling keeps my position |
 | **6. Real text** | Swap the `TextSource` to the licensed translation | NABRE (or the chosen text) renders with its copyright notice |
 
