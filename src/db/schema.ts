@@ -9,6 +9,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { Color } from "../lib/highlights/types";
 
 // Auth: one owner, any number of passkeys (phone, laptop, ...).
 export const passkeys = pgTable("passkeys", {
@@ -59,4 +60,25 @@ export const notes = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("notes_chapter_idx").on(t.bookId, t.chapter)],
+);
+
+// A highlight spans [start verse, start offset) → [end verse, end offset) within
+// one chapter. Offsets are character positions in the verse text, so they are
+// specific to the translation they were made in.
+export const highlights = pgTable(
+  "highlights",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    translation: text("translation").notNull(),
+    bookId: text("book_id").notNull(),
+    chapter: integer("chapter").notNull(),
+    verseStart: integer("verse_start").notNull(),
+    startOffset: integer("start_offset").notNull(),
+    verseEnd: integer("verse_end").notNull(),
+    endOffset: integer("end_offset").notNull(),
+    color: text("color").$type<Color>().notNull(),
+    quote: text("quote"), // highlighted text, kept for re-anchoring after a translation swap
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index("highlights_chapter_idx").on(t.translation, t.bookId, t.chapter)],
 );

@@ -1,8 +1,8 @@
 # Open Bible
 
-A private, web-based Catholic Bible reader. Only you can sign in (passkeys only), it works on any device, it scrolls continuously through all 73 books, and your notes sit right next to the text. Highlights and automatic progress tracking come next. See [`docs/PLAN.md`](docs/PLAN.md).
+A private, web-based Catholic Bible reader. Only you can sign in (passkeys only), it works on any device, it scrolls continuously through all 73 books, and your notes and highlights sit right on the text. Automatic progress tracking comes next. See [`docs/PLAN.md`](docs/PLAN.md).
 
-**Status:** phase 2. Passkey auth, continuous-scroll reader, book picker, and **inline Markdown notes**. On desktop, notes sit beside their verses in a resizable split. On phones they open in a bottom sheet. The text is the public-domain **Douay-Rheims** as a placeholder until the NABRE license comes through.
+**Status:** phase 3. Passkey auth, continuous-scroll reader, book picker, **inline Markdown notes**, and **highlights**. On desktop, notes sit beside their verses in a resizable split. On phones they open in a bottom sheet. The text is the public-domain **Douay-Rheims** as a placeholder until the NABRE license comes through.
 
 | Doc | What's in it |
 |---|---|
@@ -10,9 +10,10 @@ A private, web-based Catholic Bible reader. Only you can sign in (passkeys only)
 | [`docs/wireframes.html`](docs/wireframes.html) | Low-fi wireframes for every screen |
 | [`docs/mockup.html`](docs/mockup.html) | Interactive hi-fi mockup of the split reader (phases 2–3) |
 
-## Using notes
+## Using notes and highlights
 
-- **Add a note:** click a verse number, or select some text and press **✎ Note**. A note made from a selection keeps the quoted text.
+- **Highlight:** select text and pick one of four colors. A highlight can cover part of a verse or run across several. Click a highlight to change its color, remove it, or add a note about it.
+- **Add a note:** click a verse number, or select some text and press **✎ Note**. A note made from a selection or a highlight keeps the quoted text.
 - **Write in Markdown:** `**bold**`, `*italic*`, lists, `> quotes`, links. Type `[[Jn 3:16]]` to link to a verse. Notes save automatically as you type. **Esc** finishes editing, and ⌘/Ctrl+B or I add formatting.
 - **Desktop:** drag the divider to resize the columns (the width is remembered). Hovering a note highlights its verse.
 - **Phones:** a ✎ in the margin marks verses that have notes. Tap it, or the ✎ count in the header, to open that chapter's notes.
@@ -85,7 +86,9 @@ src/
     api/chapters/…           chapter JSON for continuous scroll
     api/passkeys/[id]        revoke a passkey
     api/notes/…              list/create (by chapter), update, delete notes
-  components/reader/         Reader (infinite scroll + split layout), BookPicker, SelectionPopover
+    api/highlights/…         list/create (by chapter), recolor, delete highlights
+  components/reader/         Reader (infinite scroll + split layout), BookPicker, ActionPopover (selection → highlight/note)
+  components/highlights/     highlight store
   components/notes/          note store, NoteCard (Markdown, autosave), aligned column, mobile sheet
   components/auth/ settings/ client-side passkey flows
   db/                        Drizzle schema + client

@@ -11,7 +11,9 @@ import { NotesColumn } from "@/components/notes/NotesColumn";
 import { NotesSheet } from "@/components/notes/NotesSheet";
 import { chapterKey, useNotes, type ClientNote, type NotesStore } from "@/components/notes/useNotes";
 import { BookPicker } from "./BookPicker";
-import { SelectionPopover, type VerseSelection } from "./SelectionPopover";
+import { ActionPopover, useVerseSelection } from "./ActionPopover";
+import { useHighlights, type ClientHighlight } from "@/components/highlights/useHighlights";
+import { segmentVerse } from "@/lib/highlights/types";
 
 type Props = {
   initial: Chapter;
@@ -66,6 +68,8 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     verse: null,
   });
   const notes = useNotes();
+  const highlights = useHighlights();
+  const [activeHl, setActiveHl] = useState<{ h: ClientHighlight; rect: DOMRect } | null>(null);
   const isDesktop = useIsDesktop();
 
   const topSentinel = useRef<HTMLDivElement>(null);
@@ -126,11 +130,15 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     window.scrollBy(0, anchor.el.getBoundingClientRect().top - anchor.top);
   }, [chapters]);
 
-  // Fetch notes for every chapter as it streams in.
+  // Fetch notes and highlights for every chapter as it streams in.
   const { loadChapter } = notes;
+  const { loadChapter: loadHighlights } = highlights;
   useEffect(() => {
-    for (const ch of chapters) loadChapter(ch.book, ch.chapter);
-  }, [chapters, loadChapter]);
+    for (const ch of chapters) {
+      loadChapter(ch.book, ch.chapter);
+      loadHighlights(ch.book, ch.chapter);
+    }
+  }, [chapters, loadChapter, loadHighlights]);
 
   // Load more when a sentinel gets near the viewport.
   useEffect(() => {
@@ -231,10 +239,11 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     [notes, isDesktop],
   );
 
-  const onSelectionNote = useCallback(
-    (s: VerseSelection) => addNote(s.book, s.chapter, s.verseStart, s.verseEnd, s.quote),
-    [addNote],
-  );
+  const selection = useVerseSelection(columnsRef);
+  const clearSelection = () => {
+    window.getSelection()?.removeAllRanges();
+    selection.clear();
+  };
 
   const openSheet = (ref: ChapterRef, verse: number | null = null) => setSheet({ open: true, ref, verse });
 
@@ -303,6 +312,8 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
               chapter={ch}
               notes={notes.byChapter[refKey(ch)] ?? []}
               store={notes}
+              highlights={highlights.byChapter[refKey(ch)] ?? []}
+              onHighlightClick={(h, rect) => setActiveHl({ h, rect })}
               onAddNote={(v) => addNote(ch.book, ch.chapter, v)}
               onOpenNotes={(v) => openSheet(ch, v)}
             />
@@ -330,7 +341,42 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
         </div>
       </main>
 
-      <SelectionPopover rootRef={columnsRef} onNote={onSelectionNote} />
+      {activeHl ? (
+        <ActionPopover
+          rect={activeHl.rect}
+          current={activeHl.h.color}
+          onColor={(c) => {
+            highlights.setColor(activeHl.h, c);
+            setActiveHl(null);
+          }}
+          onNote={() => {
+            const { h } = activeHl;
+            setActiveHl(null);
+            addNote(h.bookId, h.chapter, h.verseStart, h.verseEnd, h.quote ?? undefined);
+          }}
+          onRemove={() => {
+            highlights.remove(activeHl.h);
+            setActiveHl(null);
+          }}
+          onDismiss={() => setActiveHl(null)}
+        />
+      ) : selection.anchor ? (
+        <ActionPopover
+          rect={selection.anchor.rect}
+          onColor={(c) => {
+            const { rect: _rect, quote, ...range } = selection.anchor!;
+            void _rect;
+            highlights.add(range, c, quote);
+            clearSelection();
+          }}
+          onNote={() => {
+            const a = selection.anchor!;
+            clearSelection();
+            addNote(a.bookId, a.chapter, a.verseStart, a.verseEnd, a.quote);
+          }}
+          onDismiss={selection.clear}
+        />
+      ) : null}
 
       <NotesSheet
         open={sheet.open}
@@ -355,13 +401,15 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
 type RowProps = {
   chapter: Chapter;
   notes: ClientNote[];
+  highlights: ClientHighlight[];
+  onHighlightClick: (h: ClientHighlight, rect: DOMRect) => void;
   store: NotesStore;
   onAddNote: (verse: number) => void;
   onOpenNotes: (verse: number) => void;
 };
 
 /** One chapter: Bible text on the left, its notes on the right (desktop). */
-function ChapterRow({ chapter, notes, store, onAddNote, onOpenNotes }: RowProps) {
+function ChapterRow({ chapter, notes, highlights, onHighlightClick, store, onAddNote, onOpenNotes }: RowProps) {
   const versesRef = useRef<HTMLDivElement>(null);
   const [hoverNote, setHoverNote] = useState<ClientNote | null>(null);
   const [hoverVerse, setHoverVerse] = useState<number | null>(null);
@@ -421,7 +469,26 @@ function ChapterRow({ chapter, notes, store, onAddNote, onOpenNotes }: RowProps)
                 >
                   {v.n}
                 </sup>
-                {v.text}
+                <span data-vt>
+                  {segmentVerse(v.text, v.n, highlights).map((seg, i) =>
+                    seg.highlight ? (
+                      <mark
+                        key={i}
+                        data-hl={seg.highlight.key}
+                        className={`hl hl-${seg.highlight.color}`}
+                        onClick={(e) => {
+                          if (!window.getSelection()?.isCollapsed) return; // finishing a drag, not a click
+                          const h = highlights.find((x) => x.key === seg.highlight!.key);
+                          if (h) onHighlightClick(h, e.currentTarget.getBoundingClientRect());
+                        }}
+                      >
+                        {seg.text}
+                      </mark>
+                    ) : (
+                      seg.text
+                    ),
+                  )}
+                </span>
               </p>
             );
           })}

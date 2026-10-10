@@ -180,12 +180,14 @@ verses    (translation TEXT, book_id TEXT, chapter INT, verse INT,
            PRIMARY KEY (translation, book_id, chapter, verse))
 
 -- User data (single user, but keep user_id for safety)
-highlights (id UUID PK, user_id TEXT,
-            start_ref TEXT, start_offset INT,    -- 'JHN.1.5', char offset in verse
-            end_ref   TEXT, end_offset   INT,
-            color TEXT CHECK (color IN ('yellow','green','blue','pink')),
+highlights (id UUID PK,                         -- ✅ built in phase 3
             translation TEXT,                    -- offsets are translation-specific
-            created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
+            book_id TEXT, chapter INT,           -- range stays within one chapter
+            verse_start INT, start_offset INT,   -- char offset into the verse text
+            verse_end INT,   end_offset INT,
+            color TEXT,                          -- yellow | green | blue | pink
+            quote TEXT,                          -- highlighted text, for re-anchoring later
+            created_at TIMESTAMPTZ)
 
 notes      (id UUID PK,                         -- ✅ built in phase 2
             book_id TEXT, chapter INT,           -- a note's range stays within one chapter
@@ -193,7 +195,7 @@ notes      (id UUID PK,                         -- ✅ built in phase 2
             quote TEXT NULL,                     -- selected text at creation (context)
             body_md TEXT,                        -- Markdown source; rendered client-side
             created_at TIMESTAMPTZ, updated_at TIMESTAMPTZ)
-            -- phase 3 adds highlight_id UUID NULL REFERENCES highlights
+            -- a note made from a highlight copies its text as the quote (no FK needed)
 
 verse_reads (user_id TEXT, book_id TEXT, chapter INT, verse INT,
              first_read_at TIMESTAMPTZ,
@@ -229,7 +231,7 @@ POST   /api/notes        PATCH/DELETE /api/notes/:id
 | **0. Decide** | ✅ Decisions made (see top). ⏳ NABRE permission email sent by owner | License reply received |
 | **1. Skeleton** ✅ | Next.js app on Vercel, Neon Postgres + Drizzle, **passkey auth** (setup, login, add device), Douay-Rheims dev seed (73 books), book/chapter picker, **continuous-scroll reader** | I can enroll a passkey and read John 1 → 2 by scrolling, on my phone |
 | **2. Split view + notes** ✅ | Resizable split, verse-anchored **Markdown** notes with aligned layout, autosave, mobile bottom sheet | Notes appear beside their verse on desktop and in a sheet on mobile |
-| **3. Highlights** | Selection popover, 4 colors, multi-verse ranges, highlight → note | Highlights persist and render after reload on another device |
+| **3. Highlights** ✅ | Selection popover, 4 colors, multi-verse ranges, highlight → note | Highlights persist and render after reload on another device |
 | **4. Progress** | Auto read tracking, resume, progress page | Reading Mark straight through shows Mark at 100% |
 | **5. Page mode** | Page-by-page toggle, ← → keys, swipe | Toggling keeps my position |
 | **6. Real text** | Swap the `TextSource` to the licensed translation | NABRE (or the chosen text) renders with its copyright notice |

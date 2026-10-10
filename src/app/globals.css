@@ -8,6 +8,10 @@
   --line: #e6dfd3;
   --accent: #8a2b2b;
   --accent-soft: #f3e6e3;
+  --hl-yellow: #fbe7a1;
+  --hl-green: #cdeec3;
+  --hl-blue: #cfe2ff;
+  --hl-pink: #ffd6e3;
   color-scheme: light;
 }
 
@@ -20,6 +24,10 @@
     --line: #3a352f;
     --accent: #e08a7a;
     --accent-soft: #3a2724;
+    --hl-yellow: #6b5a17;
+    --hl-green: #2f5a2a;
+    --hl-blue: #24406b;
+    --hl-pink: #6b2a40;
     color-scheme: dark;
   }
 }
@@ -112,3 +120,17 @@ dialog::backdrop {
 .note-md a.verse-link {
   text-decoration-style: dotted;
 }
+
+/* Highlights */
+mark.hl {
+  color: inherit;
+  border-radius: 3px;
+  padding: 0.05em 0;
+  cursor: pointer;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+.hl-yellow { background: var(--hl-yellow); }
+.hl-green { background: var(--hl-green); }
+.hl-blue { background: var(--hl-blue); }
+.hl-pink { background: var(--hl-pink); }
