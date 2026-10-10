@@ -2,7 +2,14 @@
 
 A private, web-based Catholic Bible reader. Only you can sign in (passkeys only), it works on any device, it scrolls continuously through all 73 books, and your notes and highlights sit right on the text. It also keeps track of what you've read and where you left off. See [`docs/PLAN.md`](docs/PLAN.md).
 
-**Status:** phase 4. Passkey auth, continuous-scroll reader, book picker, **inline Markdown notes**, **highlights**, and **automatic progress tracking** with cross-device resume. On desktop, notes sit beside their verses in a resizable split. On phones they open in a bottom sheet. The text is the public-domain **Douay-Rheims** as a placeholder until the NABRE license comes through.
+**Status:** phases 1–5 of [the plan](docs/PLAN.md) are done:
+- passkey auth
+- continuous-scroll and page-by-page reading
+- inline Markdown notes
+- highlights
+- automatic progress tracking with cross-device resume
+
+What's left is **phase 6**: swapping in the NABRE text once it's licensed. The text is the public-domain **Douay-Rheims** as a placeholder until the NABRE license comes through.
 
 | Doc | What's in it |
 |---|---|
@@ -17,6 +24,12 @@ A private, web-based Catholic Bible reader. Only you can sign in (passkeys only)
 - **Write in Markdown:** `**bold**`, `*italic*`, lists, `> quotes`, links. Type `[[Jn 3:16]]` to link to a verse. Notes save automatically as you type. **Esc** finishes editing, and ⌘/Ctrl+B or I add formatting.
 - **Desktop:** drag the divider to resize the columns (the width is remembered). Hovering a note highlights its verse.
 - **Phones:** a ✎ in the margin marks verses that have notes. Tap it, or the ✎ count in the header, to open that chapter's notes.
+
+## Reading modes
+
+- **Scroll** (default): chapters load continuously in both directions.
+- **Page**: one chapter at a time. Turn pages with the buttons at the bottom, the ← → keys, or a swipe on a phone.
+- Toggle the mode in the header (on phones, it's the ↕ / ⇄ button). Your place is kept when you switch, and each device remembers its own mode.
 
 ## Progress
 
@@ -105,7 +118,8 @@ src/
   lib/auth/                  session, setup token, relying-party config
   lib/bible/                 canon (books.ts), text access (text.ts), reference parser (refs.ts)
   proxy.ts                   redirects anything without a session to /login
-data/douay-rheims.json       public-domain placeholder text (Project Gutenberg #8300)
+data/douay-rheims.json       public-domain placeholder text (see NOTICE.md)
+e2e/                         Playwright end-to-end suites (see e2e/README.md)
 drizzle/                     SQL migrations
 scripts/seed.ts              loads text into Postgres
 ```

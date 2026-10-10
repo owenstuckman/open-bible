@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { topVerse } from "./topVerse";
 
 const DWELL_MS = 1500; // a verse must stay in view this long to count as read
 const FLUSH_MS = 5000;
@@ -69,24 +70,11 @@ export function useReadingTracker(
   }, [rootRef, version]);
 
   useEffect(() => {
-    /**
-     * Where you are reading: the first verse that starts below the sticky
-     * header, unless the verse straddling the header fills most of the screen.
-     * (Picking a verse whose tail merely peeks out would drift backwards on
-     * every resume.)
-     */
     const currentPosition = (): Ref | null => {
-      const top = headerRef.current?.getBoundingClientRect().bottom ?? 0;
-      const room = window.innerHeight - top;
-      for (const v of rootRef.current?.querySelectorAll<HTMLElement>("[data-verse]") ?? []) {
-        const r = v.getBoundingClientRect();
-        if (!r.height || r.bottom <= top) continue;
-        if (r.top >= top - 4 || r.bottom - top > room * 0.5) {
-          const [book, ch] = v.closest<HTMLElement>("[data-chapter]")!.dataset.chapter!.split(".");
-          return { book, chapter: Number(ch), verse: Number(v.dataset.verse) };
-        }
-      }
-      return null;
+      const v = topVerse(rootRef.current, headerRef.current);
+      if (!v) return null;
+      const [book, ch] = v.closest<HTMLElement>("[data-chapter]")!.dataset.chapter!.split(".");
+      return { book, chapter: Number(ch), verse: Number(v.dataset.verse) };
     };
 
     const payload = () => {

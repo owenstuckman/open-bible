@@ -16,6 +16,8 @@ import { segmentVerse } from "@/lib/highlights/types";
 import type { ProgressSummary } from "@/lib/progress/server";
 import { formatPct } from "@/lib/progress/format";
 import { useReadingTracker } from "./useReadingTracker";
+import { setReadingMode, useReadingMode } from "./readingMode";
+import { topVerse } from "./topVerse";
 
 type Props = {
   initial: Chapter;
@@ -70,6 +72,8 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     verse: null,
   });
   const notes = useNotes();
+  const mode = useReadingMode();
+  const pendingScroll = useRef<string | null>(null);
   const highlights = useHighlights();
   const [activeHl, setActiveHl] = useState<{ h: ClientHighlight; rect: DOMRect } | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
@@ -150,7 +154,7 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     };
   }, []);
 
-  useReadingTracker(columnsRef, headerRef, chapters.length, (keys) =>
+  useReadingTracker(columnsRef, headerRef, chapters.map(refKey).join(), (keys) =>
     setCompleted((cur) => new Set([...cur, ...keys])),
   );
 
@@ -179,8 +183,9 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     }
   }, [chapters, loadChapter, loadHighlights]);
 
-  // Load more when a sentinel gets near the viewport.
+  // Load more when a sentinel gets near the viewport (scroll mode only).
   useEffect(() => {
+    if (mode === "page") return;
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) {
@@ -194,7 +199,7 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     if (bottomSentinel.current) io.observe(bottomSentinel.current);
     if (topSentinel.current) io.observe(topSentinel.current);
     return () => io.disconnect();
-  }, [loadNext, loadPrev, scrolledOnce]);
+  }, [loadNext, loadPrev, scrolledOnce, mode]);
 
   // Track which chapter is in view; keep the URL and "last read" in sync.
   useEffect(() => {
@@ -267,6 +272,74 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     bar.addEventListener("pointerup", up, { once: true });
   }
 
+  function switchMode(next: typeof mode) {
+    if (next === mode) return;
+    pendingScroll.current = topVerse(columnsRef.current, headerRef.current)?.id ?? null;
+    if (next === "page") {
+      // Keep just the chapter you're in.
+      const here = chapters.find((c) => refKey(c) === refKey(current)) ?? chapters[0];
+      setChapters([here]);
+    }
+    setReadingMode(next);
+  }
+
+  // After a mode switch, put the same verse back at the top.
+  useLayoutEffect(() => {
+    const id = pendingScroll.current;
+    if (!id) return;
+    pendingScroll.current = null;
+    columnsRef.current?.querySelector(`#${CSS.escape(id)}`)?.scrollIntoView({ block: "start" });
+  }, [mode, chapters]);
+
+  const turnPage = useCallback(
+    async (dir: 1 | -1) => {
+      const here = chapters[0];
+      const target = dir === 1 ? here.next : here.prev;
+      if (!target) return;
+      try {
+        const ch = await fetchChapter(target);
+        setChapters([ch]);
+        setCurrent(ch);
+        window.scrollTo(0, 0);
+      } catch (e) {
+        onLoadError(e);
+      }
+    },
+    [chapters, onLoadError],
+  );
+
+  // Page mode: ← / → keys and horizontal swipes turn pages.
+  useEffect(() => {
+    if (mode !== "page") return;
+    const typing = (t: EventTarget | null) =>
+      t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || e.metaKey || e.ctrlKey || typing(e.target) || document.querySelector("dialog[open]")) return;
+      if (e.key === "ArrowRight") turnPage(1);
+      if (e.key === "ArrowLeft") turnPage(-1);
+    };
+    let start: { x: number; y: number } | null = null;
+    const onStart = (e: TouchEvent) => {
+      start = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+    };
+    const onEnd = (e: TouchEvent) => {
+      if (!start || !window.getSelection()?.isCollapsed) return;
+      const dx = e.changedTouches[0].clientX - start.x;
+      const dy = e.changedTouches[0].clientY - start.y;
+      start = null;
+      if (Math.abs(dx) > 70 && Math.abs(dy) < 50) turnPage(dx < 0 ? 1 : -1);
+    };
+    const main = columnsRef.current;
+    window.addEventListener("keydown", onKey);
+    main?.addEventListener("touchstart", onStart, { passive: true });
+    main?.addEventListener("touchend", onEnd, { passive: true });
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      main?.removeEventListener("touchstart", onStart);
+      main?.removeEventListener("touchend", onEnd);
+    };
+  }, [mode, turnPage]);
+
   const addNote = useCallback(
     (book: string, chapter: number, verseStart: number, verseEnd?: number, quote?: string) => {
       notes.addDraft(book, chapter, verseStart, verseEnd, quote ?? null);
@@ -293,22 +366,49 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
         ref={headerRef}
         className="sticky top-0 z-20 border-b border-line bg-paper/95 pt-[env(safe-area-inset-top)] backdrop-blur"
       >
-        <div className="mx-auto flex max-w-[90rem] items-center gap-3 px-4 py-2.5 lg:px-6">
+        <div className="mx-auto flex max-w-[90rem] items-center gap-2 px-4 py-2.5 sm:gap-3 lg:px-6">
           <Link href="/" className="hidden font-serif text-lg font-semibold text-accent sm:block">
             ✝ Open Bible
           </Link>
           <button
             onClick={() => setPickerOpen(true)}
-            className="rounded-lg border border-line px-3 py-1.5 font-medium transition hover:border-ink"
+            className="min-w-0 truncate rounded-lg border border-line px-3 py-1.5 font-medium whitespace-nowrap transition hover:border-ink"
             aria-haspopup="dialog"
+            aria-label={`${currentBook?.name ?? current.book} ${current.chapter}, choose book and chapter`}
           >
-            {currentBook?.name ?? current.book} {current.chapter} <span className="text-muted">▾</span>
+            <span className="sm:hidden">{currentBook?.abbr ?? current.book}</span>
+            <span className="hidden sm:inline">{currentBook?.name ?? current.book}</span> {current.chapter}{" "}
+            <span className="text-muted">▾</span>
           </button>
+          <button
+            onClick={() => switchMode(mode === "scroll" ? "page" : "scroll")}
+            className="grid size-8 shrink-0 place-items-center rounded-lg border border-line text-base sm:hidden"
+            aria-label={mode === "scroll" ? "Switch to page mode" : "Switch to scroll mode"}
+            title={mode === "scroll" ? "Scroll mode (tap for pages)" : "Page mode (tap for scroll)"}
+          >
+            {mode === "scroll" ? "↕" : "⇄"}
+          </button>
+          <div
+            role="group"
+            aria-label="Reading mode"
+            className="hidden shrink-0 overflow-hidden rounded-lg border border-line text-sm sm:flex"
+          >
+            {(["scroll", "page"] as const).map((m) => (
+              <button
+                key={m}
+                onClick={() => switchMode(m)}
+                aria-pressed={mode === m}
+                className={`px-2.5 py-1 capitalize transition ${mode === m ? "bg-ink text-paper" : "hover:bg-accent-soft"}`}
+              >
+                {m}
+              </button>
+            ))}
+          </div>
           <span className="flex-1" />
           <span className="hidden text-xs text-muted xl:inline">{translationName}</span>
           <Link
             href="/progress"
-            className="flex h-8 items-center gap-2 rounded-lg border border-line px-2.5 text-xs text-muted transition hover:border-ink"
+            className="flex h-8 shrink-0 items-center gap-2 rounded-lg border border-line px-2.5 text-xs text-muted transition hover:border-ink"
             title="Reading progress"
             aria-label={`Reading progress: ${pct} of the Bible`}
           >
@@ -319,14 +419,14 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
           </Link>
           <button
             onClick={() => openSheet(current)}
-            className="flex h-8 items-center gap-1 rounded-lg border border-line px-2.5 text-sm transition hover:border-ink lg:hidden"
+            className="flex h-8 shrink-0 items-center gap-1 rounded-lg border border-line px-2.5 text-sm transition hover:border-ink lg:hidden"
             aria-label={`Notes for this chapter (${currentNotes.length})`}
           >
             ✎ <span className="text-xs">{currentNotes.length}</span>
           </button>
           <Link
             href="/settings"
-            className="grid size-8 place-items-center rounded-lg border border-line transition hover:border-ink"
+            className="grid size-8 shrink-0 place-items-center rounded-lg border border-line transition hover:border-ink"
             aria-label="Settings"
             title="Settings"
           >
@@ -380,7 +480,15 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
           <div ref={bottomSentinel} aria-hidden className="h-px" />
           <div className="lg:grid lg:grid-cols-[var(--split)_minmax(0,1fr)]">
             <div className="mx-auto w-full max-w-2xl px-5 sm:px-8">
-              {last.next ? (
+              {mode === "page" ? (
+                <nav aria-label="Chapter navigation" className="flex items-center justify-between gap-3 py-10 text-sm">
+                  <PageButton target={first.prev} dir={-1} onClick={() => turnPage(-1)} />
+                  <span className="text-center text-xs whitespace-nowrap text-muted sm:text-sm">
+                    {first.chapter} of {first.chapterCount}
+                  </span>
+                  <PageButton target={first.next} dir={1} onClick={() => turnPage(1)} />
+                </nav>
+              ) : last.next ? (
                 <p className="py-10 text-center text-sm text-muted">Loading…</p>
               ) : (
                 <p className="py-16 text-center font-serif text-muted">✝ End of the Bible</p>
@@ -445,6 +553,20 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
         chapterCounts={chapterCounts}
       />
     </div>
+  );
+}
+
+function PageButton({ target, dir, onClick }: { target: ChapterRef | null; dir: 1 | -1; onClick: () => void }) {
+  if (!target) return <span className="w-28" />;
+  const label = `${getBook(target.book)?.abbr ?? target.book} ${target.chapter}`;
+  return (
+    <button
+      onClick={onClick}
+      className="w-28 rounded-lg border border-line px-3 py-2 transition hover:border-ink"
+      aria-label={dir === 1 ? `Next chapter, ${label}` : `Previous chapter, ${label}`}
+    >
+      {dir === -1 ? `← ${label}` : `${label} →`}
+    </button>
   );
 }
 

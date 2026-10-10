@@ -1,4 +1,4 @@
-# Open Bible: Plan v0.2
+# Open Bible: Plan v0.3
 
 A private, web-based Catholic Bible reader. Only the owner can sign in, and it works on any device. The core loop is: **read → progress is tracked automatically → highlight and take notes inline**.
 
@@ -234,7 +234,7 @@ POST   /api/notes        PATCH/DELETE /api/notes/:id
 | **2. Split view + notes** ✅ | Resizable split, verse-anchored **Markdown** notes with aligned layout, autosave, mobile bottom sheet | Notes appear beside their verse on desktop and in a sheet on mobile |
 | **3. Highlights** ✅ | Selection popover, 4 colors, multi-verse ranges, highlight → note | Highlights persist and render after reload on another device |
 | **4. Progress** ✅ | Auto read tracking, resume, progress page | Reading Mark straight through shows Mark at 100% |
-| **5. Page mode** | Page-by-page toggle, ← → keys, swipe | Toggling keeps my position |
+| **5. Page mode** ✅ | Page-by-page toggle, ← → keys, swipe | Toggling keeps my position |
 | **6. Real text** | Swap the `TextSource` to the licensed translation | NABRE (or the chosen text) renders with its copyright notice |
 
 ---
