@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Bible Wireframes</title>
+<style>
+  :root { --ink:#222; --mid:#888; --line:#bbb; --fill:#eee; --bg:#fafafa; --hl:#d8d8d8; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px 16px 64px; background:var(--bg); color:var(--ink);
+         font:14px/1.45 ui-monospace, "Cascadia Code", Menlo, Consolas, monospace; }
+  main { max-width:1100px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; }
+  .sub { color:var(--mid); margin:0 0 28px; }
+  nav.toc { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:32px; }
+  nav.toc a { color:var(--ink); border:1px solid var(--line); padding:4px 10px; border-radius:4px; text-decoration:none; background:#fff; }
+  section { margin-bottom:56px; }
+  h2 { font-size:16px; border-bottom:2px solid var(--ink); padding-bottom:4px; margin-bottom:6px; }
+  .why { color:#555; margin:0 0 14px; max-width:80ch; }
+  .scroll { overflow-x:auto; }
+  .frame { background:#fff; border:2px solid var(--ink); border-radius:6px; min-width:820px; }
+  .frame.phone { min-width:0; width:340px; border-radius:22px; padding:10px 0 14px; }
+  .bar { display:flex; align-items:center; gap:10px; padding:8px 12px; border-bottom:1.5px solid var(--ink); flex-wrap:wrap; }
+  .box { border:1.5px dashed var(--line); border-radius:4px; padding:3px 8px; color:#444; background:#fff; white-space:nowrap; }
+  .box.solid { border-style:solid; border-color:var(--ink); }
+  .box.on { background:var(--ink); color:#fff; border-color:var(--ink); border-style:solid; }
+  .grow { flex:1; }
+  .prog { width:110px; height:10px; border:1.5px solid var(--ink); border-radius:5px; position:relative; }
+  .prog::after { content:""; position:absolute; inset:0 58% 0 0; background:var(--ink); }
+  .split { display:grid; grid-template-columns: 55% 10px 1fr; min-height:380px; }
+  .pane { padding:16px 20px; }
+  .div { background:var(--fill); border-left:1.5px solid var(--ink); border-right:1.5px solid var(--ink); display:flex; align-items:center; justify-content:center; color:var(--mid); }
+  .chap { font-weight:700; letter-spacing:.1em; margin-bottom:10px; }
+  .v { margin:0 0 7px; }
+  .v sup { font-weight:700; margin-right:3px; }
+  .lines { display:inline-block; height:8px; background:var(--line); border-radius:4px; vertical-align:middle; }
+  .hl { background:var(--hl); padding:0 2px; outline:1.5px solid var(--ink); }
+  .note { border:1.5px solid var(--ink); border-radius:4px; padding:6px 8px; margin-bottom:10px; background:#fff; position:relative; }
+  .note .ref { font-size:11px; color:var(--mid); }
+  .note::before { content:""; position:absolute; left:-22px; top:12px; width:20px; border-top:1.5px dotted var(--mid); }
+  .add { border:1.5px dashed var(--line); padding:6px 8px; border-radius:4px; color:var(--mid); }
+  .anno { color:#b00; font-size:12px; }
+  .anno::before { content:"◀ "; }
+  .pop { display:inline-flex; gap:6px; align-items:center; border:2px solid var(--ink); border-radius:6px; padding:4px 8px; background:#fff; box-shadow:3px 3px 0 var(--ink); }
+  .dot { width:14px; height:14px; border-radius:50%; border:1.5px solid var(--ink); display:inline-block; }
+  .foot { display:flex; justify-content:space-between; padding:10px 20px; border-top:1.5px solid var(--ink); }
+  .row { display:flex; gap:28px; flex-wrap:wrap; align-items:flex-start; }
+  .center { display:flex; align-items:center; justify-content:center; min-height:320px; }
+  .card { border:2px solid var(--ink); border-radius:8px; padding:24px; width:300px; text-align:center; }
+  .input { border:1.5px solid var(--ink); border-radius:4px; padding:7px; text-align:left; color:var(--mid); margin:10px 0; }
+  .btn { border:2px solid var(--ink); background:var(--ink); color:#fff; border-radius:4px; padding:7px; font-weight:700; }
+  .grid73 { display:grid; grid-template-columns:repeat(auto-fill, minmax(118px,1fr)); gap:8px; padding:16px; }
+  .bk { border:1.5px solid var(--ink); border-radius:4px; padding:5px 6px; font-size:12px; }
+  .sq { display:flex; flex-wrap:wrap; gap:2px; margin-top:4px; }
+  .sq i { width:7px; height:7px; border:1px solid var(--ink); display:block; }
+  .sq i.r { background:var(--ink); }
+  .sheet { border-top:2px solid var(--ink); border-radius:14px 14px 0 0; padding:8px 14px; background:var(--fill); }
+  .grab { width:40px; height:4px; background:var(--mid); border-radius:2px; margin:0 auto 8px; }
+  .gutter { display:inline-block; width:14px; color:var(--ink); font-weight:700; }
+  .legend { margin-top:10px; color:#555; font-size:12px; }
+  ul.notes-list { margin:6px 0 0; padding-left:18px; color:#444; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Open Bible: Wireframes</h1>
+  <p class="sub">Low-fidelity layouts. Grey bars stand for verse text, and <span class="anno">red</span> annotations explain behavior. For the interactive high-fidelity version, see <code>mockup.html</code>.</p>
+
+  <nav class="toc">
+    <a href="#w1">1 · Sign in</a>
+    <a href="#w2">2 · Reader (scroll)</a>
+    <a href="#w3">3 · Reader (page)</a>
+    <a href="#w4">4 · Highlight / note</a>
+    <a href="#w5">5 · Book picker</a>
+    <a href="#w6">6 · Progress</a>
+    <a href="#w7">7 · Mobile</a>
+  </nav>
+
+  <!-- 1 -->
+  <section id="w1">
+    <h2>1 · Sign in</h2>
+    <p class="why">Sign-in is passkey only: no email and no password. One button triggers Face ID, Touch ID, or Windows Hello. There is no sign-up page. The first passkey is enrolled once through <code>/setup?token=…</code> (right), and that page then locks itself.</p>
+    <div class="scroll"><div class="frame">
+      <div class="center"><div class="card">
+        <div style="font-size:18px;font-weight:700">✝ Open Bible</div>
+        <div style="color:var(--mid);margin:10px 0 16px">Private reader</div>
+        <div class="btn">🔑 Sign in with passkey</div>
+        <div style="margin-top:12px;font-size:12px;color:var(--mid)">New computer? Choose "use a phone" in the prompt and scan the QR code.</div>
+      </div>
+      <div class="card" style="margin-left:28px">
+        <div style="font-size:12px;color:var(--mid)">/setup (one time only)</div>
+        <div style="font-weight:700;margin:6px 0">Create your passkey</div>
+        <div class="input">Device nickname: "Owen's iPhone"</div>
+        <div class="btn">Create passkey</div>
+        <div class="anno" style="margin-top:10px;text-align:left">404 after the first enrollment</div>
+      </div></div>
+    </div></div>
+  </section>
+
+  <!-- 2 -->
+  <section id="w2">
+    <h2>2 · Reader: split view, continuous scroll</h2>
+    <p class="why">This is the main screen. Bible text is on the left and notes are on the right, with each note level with its verse. The divider can be dragged. Chapters stream in as you scroll, and the header and URL follow the chapter in view.</p>
+    <div class="scroll"><div class="frame">
+      <div class="bar">
+        <span class="box">☰</span>
+        <span class="box solid">John ▾</span><span class="box solid">1 ▾</span>
+        <span class="grow"></span>
+        <span class="box on">Scroll</span><span class="box">Page</span>
+        <span class="grow"></span>
+        <span class="prog"></span><span>42%</span>
+        <span class="box">⚙</span><span class="box">(O)</span>
+      </div>
+      <div class="split">
+        <div class="pane">
+          <div class="chap">JOHN · 1</div>
+          <p class="v"><sup>1</sup><span class="lines" style="width:80%"></span></p>
+          <p class="v"><sup>2</sup><span class="lines" style="width:55%"></span></p>
+          <p class="v"><sup>3</sup><span class="lines" style="width:88%"></span></p>
+          <p class="v"><sup>4</sup><span class="lines" style="width:30%"></span> <span class="hl">highlighted span</span> <span class="lines" style="width:20%"></span></p>
+          <p class="v"><sup>5</sup><span class="lines" style="width:70%"></span></p>
+          <p class="v"><sup>6</sup><span class="lines" style="width:60%"></span></p>
+          <p class="v"><sup>7</sup><span class="lines" style="width:85%"></span></p>
+          <p class="v"><sup>8</sup><span class="lines" style="width:50%"></span></p>
+          <p class="v"><sup>9</sup><span class="lines" style="width:78%"></span></p>
+          <div class="chap" style="margin-top:18px;border-top:1.5px dashed var(--line);padding-top:10px">JOHN · 2 <span class="anno">next chapter streams in</span></div>
+          <p class="v"><sup>1</sup><span class="lines" style="width:74%"></span></p>
+        </div>
+        <div class="div">⇔</div>
+        <div class="pane">
+          <div class="chap">NOTES · JOHN 1 <span style="font-weight:400;color:var(--mid)">(3)</span></div>
+          <div class="note"><div class="ref">v1</div>Note text… <br><span class="lines" style="width:70%"></span></div>
+          <div style="height:36px"></div>
+          <div class="note"><div class="ref">v4 · linked to highlight</div><span class="lines" style="width:85%"></span><br><span class="lines" style="width:40%"></span></div>
+          <div style="height:40px"></div>
+          <div class="note"><div class="ref">v8–9</div><span class="lines" style="width:60%"></span></div>
+          <div class="add">+ Add note…</div>
+          <p class="anno">cards align to verse y-position, stack on overlap</p>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 3 -->
+  <section id="w3">
+    <h2>3 · Reader: page by page</h2>
+    <p class="why">The layout is the same, but there is one chapter per page. Use ← → keys, swipe, or the footer buttons. The progress bar shows the position within the book.</p>
+    <div class="scroll"><div class="frame">
+      <div class="bar">
+        <span class="box">☰</span><span class="box solid">John ▾</span><span class="box solid">3 ▾</span>
+        <span class="grow"></span><span class="box">Scroll</span><span class="box on">Page</span><span class="grow"></span>
+        <span class="prog"></span><span>42%</span><span class="box">⚙</span><span class="box">(O)</span>
+      </div>
+      <div class="split" style="min-height:220px">
+        <div class="pane">
+          <div class="chap">JOHN · 3</div>
+          <p class="v"><sup>1</sup><span class="lines" style="width:80%"></span></p>
+          <p class="v"><sup>2</sup><span class="lines" style="width:65%"></span></p>
+          <p class="v" style="color:var(--mid)">⋮</p>
+          <p class="v"><sup>36</sup><span class="lines" style="width:58%"></span></p>
+        </div>
+        <div class="div">⇔</div>
+        <div class="pane"><div class="chap">NOTES · JOHN 3</div><div class="add">No notes yet. Select text or click a verse number.</div></div>
+      </div>
+      <div class="foot"><span class="box solid">← John 2</span><span style="color:var(--mid)">Chapter 3 of 21 · ✓ read</span><span class="box solid">John 4 →</span></div>
+    </div></div>
+  </section>
+
+  <!-- 4 -->
+  <section id="w4">
+    <h2>4 · Selecting text → highlight or note</h2>
+    <p class="why">Selecting text brings up a floating toolbar above the selection. A color click highlights it, and <b>Note</b> creates a note anchored to the selection and focuses its editor in the right pane. Clicking an existing highlight brings the toolbar back with "Remove" and a different color.</p>
+    <div class="scroll"><div class="frame">
+      <div class="split" style="min-height:220px">
+        <div class="pane">
+          <p class="v"><sup>4</sup><span class="lines" style="width:40%"></span></p>
+          <div style="margin:4px 0 2px 30px"><span class="pop">
+            <span class="dot" style="background:#fff3a6"></span><span class="dot" style="background:#c9f0c0"></span>
+            <span class="dot" style="background:#c5ddff"></span><span class="dot" style="background:#ffd0e0"></span>
+            │ <b>✎ Note</b> │ ⧉ Copy</span></div>
+          <p class="v"><sup>5</sup><span class="lines" style="width:10%"></span> <span class="hl">selected text here</span> <span class="lines" style="width:25%"></span></p>
+          <p class="v"><sup>6</sup><span class="lines" style="width:66%"></span></p>
+        </div>
+        <div class="div">⇔</div>
+        <div class="pane">
+          <div class="note"><div class="ref">v5 · "selected text here"</div>
+            <div class="input" style="margin:6px 0;min-height:60px">**Logos**: see [[Gen 1:1]]<br>- point one</div>
+            <div style="font-size:11px;color:var(--mid)">Editing Markdown · Esc to preview</div>
+            <div style="font-size:11px;color:var(--mid)">✓ Saved · autosaves as you type</div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 5 & 6 -->
+  <section id="w5">
+    <h2>5 · Book &amp; chapter picker</h2>
+    <p class="why">Opens from the "John ▾" button or ☰ as a drawer or modal. It groups the Old Testament (including the deuterocanonical books) and the New Testament, has a type-to-filter box, and checkmarks chapters that have been read.</p>
+    <div class="scroll"><div class="frame" style="min-width:600px;max-width:720px">
+      <div class="bar"><span class="input" style="margin:0;flex:1">🔍 Filter books… "sir"</span><span class="box">✕</span></div>
+      <div class="pane">
+        <div style="font-weight:700;margin-bottom:6px">OLD TESTAMENT</div>
+        <div class="row" style="gap:6px">
+          <span class="box">Genesis ✓</span><span class="box">Exodus</span><span class="box">Leviticus</span><span class="box">…</span>
+          <span class="box">Tobit</span><span class="box">Judith</span><span class="box">1 Maccabees</span><span class="box solid">Sirach</span><span class="box">…</span>
+        </div>
+        <div style="font-weight:700;margin:14px 0 6px">SIRACH: CHAPTERS</div>
+        <div class="row" style="gap:4px">
+          <span class="box on">1</span><span class="box on">2</span><span class="box on">3</span><span class="box">4</span><span class="box">5</span><span class="box">6</span><span class="box">…</span><span class="box">51</span>
+        </div>
+        <p class="legend">■ filled = read · □ outline = unread</p>
+      </div>
+    </div></div>
+  </section>
+
+  <section id="w6">
+    <h2>6 · Progress</h2>
+    <p class="why">This page has a "Continue reading" button that goes to the exact verse, totals, and all 73 books with a square for each chapter. Clicking a square opens that chapter.</p>
+    <div class="scroll"><div class="frame">
+      <div class="bar">
+        <span class="box">← Reader</span><span class="grow"></span>
+        <span class="box solid">▶ Continue: John 3:16</span>
+      </div>
+      <div class="pane row" style="gap:40px">
+        <div><div style="font-size:22px;font-weight:700">18%</div><div style="color:var(--mid)">of the Bible</div></div>
+        <div><div style="font-size:22px;font-weight:700">243 / 1,334</div><div style="color:var(--mid)">chapters</div></div>
+        <div><div style="font-size:22px;font-weight:700">57</div><div style="color:var(--mid)">notes · 112 highlights</div></div>
+      </div>
+      <div class="grid73">
+        <div class="bk">Genesis 100%<div class="sq"><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i></div></div>
+        <div class="bk">Exodus 35%<div class="sq"><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="bk">Leviticus 0%<div class="sq"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+        <div class="bk">… 66 more</div>
+        <div class="bk">Matthew 100%<div class="sq"><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i><i class="r"></i></div></div>
+        <div class="bk">John 14%<div class="sq"><i class="r"></i><i class="r"></i><i class="r"></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+      </div>
+    </div></div>
+  </section>
+
+  <!-- 7 -->
+  <section id="w7">
+    <h2>7 · Mobile (&lt; 768px)</h2>
+    <p class="why">There is no room for a split, so the Bible takes the full width. A ✎ in the gutter marks verses with notes. Tapping it opens a bottom sheet with those notes, and dragging the sheet up shows every note for the chapter. Swipe left or right to change chapters in page mode.</p>
+    <div class="row">
+      <div class="frame phone">
+        <div class="bar" style="border-bottom-width:1.5px"><span class="box">☰</span><span class="box solid">Jn 1 ▾</span><span class="grow"></span><span class="box">✎ 3</span></div>
+        <div class="pane" style="min-height:330px">
+          <p class="v"><span class="gutter">✎</span><sup>1</sup><span class="lines" style="width:70%"></span></p>
+          <p class="v"><span class="gutter"></span><sup>2</sup><span class="lines" style="width:55%"></span></p>
+          <p class="v"><span class="gutter"></span><sup>3</sup><span class="lines" style="width:75%"></span></p>
+          <p class="v"><span class="gutter">✎</span><sup>4</sup><span class="hl">highlight</span> <span class="lines" style="width:30%"></span></p>
+          <p class="v"><span class="gutter"></span><sup>5</sup><span class="lines" style="width:72%"></span></p>
+          <p class="v"><span class="gutter"></span><sup>6</sup><span class="lines" style="width:40%"></span></p>
+        </div>
+        <div style="height:6px;margin:0 14px;background:var(--fill);border:1px solid var(--ink);border-radius:3px"><div style="width:42%;height:100%;background:var(--ink)"></div></div>
+      </div>
+      <div class="frame phone">
+        <div class="bar"><span class="box">☰</span><span class="box solid">Jn 1 ▾</span><span class="grow"></span><span class="box on">✎ 3</span></div>
+        <div class="pane" style="min-height:120px;opacity:.45">
+          <p class="v"><span class="gutter">✎</span><sup>1</sup><span class="lines" style="width:70%"></span></p>
+          <p class="v"><span class="gutter"></span><sup>2</sup><span class="lines" style="width:55%"></span></p>
+        </div>
+        <div class="sheet" style="min-height:240px">
+          <div class="grab"></div>
+          <div style="font-weight:700">Notes · v4</div>
+          <div class="note" style="margin-top:8px"><div class="ref">v4 · linked to highlight</div><span class="lines" style="width:85%"></span><br><span class="lines" style="width:50%"></span></div>
+          <div class="add">+ Add note to v4</div>
+          <p class="anno" style="margin-top:8px">drag up → all chapter notes</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+</body>
+</html>

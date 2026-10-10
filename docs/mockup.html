@@ -1,0 +1,499 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open Bible Reader Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#f7f4ee; --paper:#fffdf8; --ink:#2a2622; --muted:#7a7167; --line:#e6dfd3;
+    --accent:#8a2b2b; --accent-soft:#f3e6e3; --note-bg:#fff;
+    --hl-yellow:#fbeaa0; --hl-green:#cdeec3; --hl-blue:#cfe2ff; --hl-pink:#ffd6e3;
+    --serif:"Literata", Georgia, "Times New Roman", serif;
+    --sans:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+    --bg:#1b1917; --paper:#221f1c; --ink:#ece6dc; --muted:#a39a8e; --line:#3a352f;
+    --accent:#e08a7a; --accent-soft:#3a2724; --note-bg:#2a2622;
+    --hl-yellow:#6b5a17; --hl-green:#2f5a2a; --hl-blue:#24406b; --hl-pink:#6b2a40;
+    color-scheme: dark; } }
+  :root[data-theme="dark"] {
+    --bg:#1b1917; --paper:#221f1c; --ink:#ece6dc; --muted:#a39a8e; --line:#3a352f;
+    --accent:#e08a7a; --accent-soft:#3a2724; --note-bg:#2a2622;
+    --hl-yellow:#6b5a17; --hl-green:#2f5a2a; --hl-blue:#24406b; --hl-pink:#6b2a40;
+    color-scheme: dark; }
+
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+
+  /* header */
+  header { position:sticky; top:env(safe-area-inset-top,0px); z-index:20; display:flex; align-items:center; gap:12px;
+           padding:10px 16px; background:var(--paper); border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  .brand { font-family:var(--serif); font-weight:600; font-size:17px; color:var(--accent); margin-right:6px; }
+  .ref-btn { border:1px solid var(--line); background:transparent; border-radius:8px; padding:5px 10px; font-weight:500; }
+  .seg { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .seg button { border:0; background:transparent; padding:5px 12px; }
+  .seg button[aria-pressed="true"] { background:var(--ink); color:var(--paper); }
+  .spacer { flex:1; }
+  .progress { display:flex; align-items:center; gap:8px; color:var(--muted); font-size:12px; }
+  .bar { width:120px; height:6px; background:var(--line); border-radius:3px; overflow:hidden; }
+  .bar > i { display:block; height:100%; width:0; background:var(--accent); transition:width .4s; }
+  .icon-btn { border:1px solid var(--line); background:transparent; border-radius:8px; width:32px; height:32px; }
+  .avatar { width:30px; height:30px; border-radius:50%; background:var(--accent); color:#fff; display:grid; place-items:center; font-weight:600; font-size:13px; }
+
+  /* split layout */
+  .split { display:grid; grid-template-columns: var(--left, 56%) 8px 1fr; height:calc(100vh - 53px); }
+  .col { overflow-y:auto; position:relative; }
+  .bible { background:var(--paper); }
+  .bible-inner { max-width:640px; margin:0 auto; padding:32px 32px 120px; }
+  .divider { background:var(--line); cursor:col-resize; position:relative; }
+  .divider::after { content:"⋮"; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:var(--muted); }
+  .notes { background:var(--bg); }
+  .notes-inner { position:relative; padding:32px 24px 120px; }
+
+  .chapter-h { font-family:var(--serif); font-size:13px; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); margin:0 0 4px; }
+  .chapter-n { font-family:var(--serif); font-size:44px; font-weight:600; margin:0 0 20px; color:var(--accent); line-height:1; }
+  .chapter + .chapter { margin-top:56px; padding-top:32px; border-top:1px solid var(--line); }
+  .verse { font-family:var(--serif); font-size:19px; line-height:1.75; margin:0 0 6px; border-radius:4px; padding:0 4px; margin-left:-4px;
+           transition:background .2s; position:relative; }
+  .verse.linked { background:var(--accent-soft); }
+  .vn { font-family:var(--sans); font-size:11px; font-weight:600; color:var(--accent); vertical-align:super; margin-right:4px; cursor:pointer; user-select:none; }
+  .vn:hover::after { content:" +"; }
+  .verse .read-dot { position:absolute; left:-18px; top:13px; width:5px; height:5px; border-radius:50%; background:var(--accent); opacity:0; transition:opacity .4s; }
+  .verse.is-read .read-dot { opacity:.35; }
+  mark { color:inherit; border-radius:3px; padding:1px 0; cursor:pointer; }
+  mark.yellow { background:var(--hl-yellow); } mark.green { background:var(--hl-green); }
+  mark.blue { background:var(--hl-blue); } mark.pink { background:var(--hl-pink); }
+
+  .notes-head { display:flex; align-items:baseline; justify-content:space-between; margin-bottom:12px; }
+  .notes-head h3 { margin:0; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); font-weight:600; }
+  .note { position:absolute; left:24px; right:24px; background:var(--note-bg); border:1px solid var(--line); border-radius:10px;
+          padding:10px 12px 8px; box-shadow:0 1px 2px rgba(0,0,0,.04); transition:top .25s, box-shadow .2s, border-color .2s; }
+  .note::before { content:""; position:absolute; left:-25px; top:16px; width:24px; border-top:1px dashed var(--line); }
+  .note.linked { border-color:var(--accent); box-shadow:0 2px 10px rgba(138,43,43,.12); }
+  .note .meta { display:flex; justify-content:space-between; font-size:11px; color:var(--muted); margin-bottom:4px; }
+  .note .meta b { color:var(--accent); font-weight:600; }
+  .note .quote { font-family:var(--serif); font-style:italic; font-size:13px; color:var(--muted); border-left:3px solid var(--line); padding-left:8px; margin:4px 0 6px; }
+  .note textarea { width:100%; border:0; resize:none; background:transparent; font:14px/1.5 var(--sans); color:var(--ink); outline:none; padding:0; min-height:22px; overflow:hidden; }
+  .note .saved { font-size:11px; color:var(--muted); height:14px; }
+  .note textarea { font:13px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+  .note .md { font-size:14px; line-height:1.5; cursor:text; min-height:22px; }
+  .note .md p, .note .md ul, .note .md blockquote { margin:0 0 6px; }
+  .note .md ul { padding-left:18px; }
+  .note .md blockquote { border-left:3px solid var(--line); padding-left:8px; color:var(--muted); }
+  .note .md code { background:var(--bg); padding:0 4px; border-radius:4px; font-size:12px; }
+  .note .md a.vref { color:var(--accent); text-decoration:none; border-bottom:1px dotted var(--accent); }
+  .note .md .ph { color:var(--muted); }
+  .note.editing .md, .note:not(.editing) textarea { display:none; }
+  .note .del { border:0; background:none; color:var(--muted); padding:0 2px; }
+  .empty { color:var(--muted); font-size:13px; border:1px dashed var(--line); border-radius:10px; padding:12px; }
+
+  /* popover */
+  .pop { position:fixed; z-index:50; display:flex; gap:6px; align-items:center; background:var(--ink); color:var(--paper);
+         border-radius:10px; padding:6px 8px; box-shadow:0 6px 20px rgba(0,0,0,.2); }
+  .pop .sw { width:20px; height:20px; border-radius:50%; border:2px solid var(--paper); }
+  .pop .sep { width:1px; height:18px; background:rgba(255,255,255,.25); margin:0 2px; }
+  .pop button { border:0; background:transparent; color:inherit; padding:2px 6px; border-radius:6px; }
+  .pop button:hover { background:rgba(255,255,255,.12); }
+
+  /* page mode footer */
+  .pager { display:none; justify-content:space-between; align-items:center; margin-top:40px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); }
+  .pager button { border:1px solid var(--line); background:transparent; padding:6px 14px; border-radius:8px; }
+  body.page-mode .pager { display:flex; }
+
+  .copyright { margin-top:48px; font-size:11px; color:var(--muted); }
+  .toast { position:fixed; bottom:calc(20px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%); background:var(--ink); color:var(--paper); padding:8px 14px; border-radius:8px; font-size:13px; opacity:0; transition:opacity .3s; pointer-events:none; }
+  .toast.show { opacity:1; }
+
+  /* mobile: notes become a bottom sheet */
+  .sheet-btn { display:none; }
+  @media (max-width: 767px) {
+    .split { display:block; height:auto; }
+    .divider { display:none; }
+    .bible-inner { padding:24px 20px 100px; }
+    .verse .read-dot { left:-12px; }
+    .notes { position:fixed; left:0; right:0; bottom:0; height:60vh; transform:translateY(100%); transition:transform .3s;
+             border-radius:16px 16px 0 0; box-shadow:0 -8px 30px rgba(0,0,0,.18); z-index:40; padding-bottom:env(safe-area-inset-bottom,0px); }
+    body.sheet-open .notes { transform:none; }
+    .note { position:relative; left:auto; right:auto; top:auto !important; margin-bottom:10px; }
+    .note::before { display:none; }
+    .sheet-btn { display:inline-block; }
+    header { gap:6px; padding:8px 12px; flex-wrap:nowrap; }
+    .spacer.s1 { display:none; }
+    .seg button { padding:5px 8px; }
+    .progress .bar, .avatar { display:none; }
+    .brand { display:none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <span class="brand">✝ Open Bible</span>
+  <button class="ref-btn" title="Book picker">John ▾</button>
+  <button class="ref-btn" id="chapBtn" title="Chapter picker">1 ▾</button>
+  <span class="spacer s1"></span>
+  <div class="seg" role="group" aria-label="Reading mode">
+    <button id="modeScroll" aria-pressed="true">Scroll</button>
+    <button id="modePage" aria-pressed="false">Page</button>
+  </div>
+  <span class="spacer"></span>
+  <div class="progress" title="Verses read in this demo"><div class="bar"><i id="progBar"></i></div><span id="progTxt">0%</span></div>
+  <button class="icon-btn sheet-btn" id="sheetBtn" title="Notes">✎</button>
+  <button class="icon-btn" id="themeBtn" title="Toggle theme">◐</button>
+  <span class="avatar" title="Signed in">O</span>
+</header>
+
+<div class="split" id="split">
+  <div class="col bible" id="bibleCol"><div class="bible-inner" id="bible"></div></div>
+  <div class="divider" id="divider" title="Drag to resize"></div>
+  <div class="col notes" id="notesCol">
+    <div class="notes-inner" id="notesInner">
+      <div class="notes-head"><h3 id="notesTitle">Notes</h3><span id="noteCount" style="color:var(--muted);font-size:12px"></span></div>
+      <div id="notesLayer"></div>
+    </div>
+  </div>
+</div>
+
+<div class="pop" id="pop" hidden>
+  <button class="sw" data-c="yellow" style="background:#fbeaa0" title="Yellow"></button>
+  <button class="sw" data-c="green" style="background:#cdeec3" title="Green"></button>
+  <button class="sw" data-c="blue" style="background:#cfe2ff" title="Blue"></button>
+  <button class="sw" data-c="pink" style="background:#ffd6e3" title="Pink"></button>
+  <span class="sep"></span>
+  <button id="popNote">✎ Note</button>
+  <button id="popRemove" hidden>Remove</button>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* Placeholder text: Douay-Rheims (Challoner), public domain. The real app swaps in the licensed USCCB-approved text. */
+const TEXT = {
+  1: ["In the beginning was the Word, and the Word was with God, and the Word was God.",
+      "The same was in the beginning with God.",
+      "All things were made by him: and without him was made nothing that was made.",
+      "In him was life, and the life was the light of men.",
+      "And the light shineth in darkness, and the darkness did not comprehend it.",
+      "There was a man sent from God, whose name was John.",
+      "This man came for a witness, to give testimony of the light, that all men might believe through him.",
+      "He was not the light, but was to give testimony of the light.",
+      "That was the true light, which enlighteneth every man that cometh into this world.",
+      "He was in the world, and the world was made by him, and the world knew him not.",
+      "He came unto his own, and his own received him not.",
+      "But as many as received him, he gave them power to be made the sons of God, to them that believe in his name.",
+      "Who are born, not of blood, nor of the will of the flesh, nor of the will of man, but of God.",
+      "And the Word was made flesh, and dwelt among us, (and we saw his glory, the glory as it were of the only begotten of the Father,) full of grace and truth."],
+  2: ["And the third day, there was a marriage in Cana of Galilee: and the mother of Jesus was there.",
+      "And Jesus also was invited, and his disciples, to the marriage.",
+      "And the wine failing, the mother of Jesus saith to him: They have no wine.",
+      "And Jesus saith to her: Woman, what is that to me and to thee? my hour is not yet come.",
+      "His mother saith to the waiters: Whatsoever he shall say to you, do ye.",
+      "Now there were set there six waterpots of stone, according to the manner of the purifying of the Jews, containing two or three measures apiece.",
+      "Jesus saith to them: Fill the waterpots with water. And they filled them up to the brim.",
+      "And Jesus saith to them: Draw out now, and carry to the chief steward of the feast. And they carried it.",
+      "And when the chief steward had tasted the water made wine, and knew not whence it was, but the waiters knew who had drawn the water; the chief steward calleth the bridegroom,",
+      "And saith to him: Every man at first setteth forth good wine, and when men have well drunk, then that which is worse. But thou hast kept the good wine until now.",
+      "This beginning of miracles did Jesus in Cana of Galilee; and manifested his glory, and his disciples believed in him."]
+};
+
+/* Demo state (the real app keeps this in Postgres) */
+let highlights = [
+  { id:"h1", ref:"1.5", start:4, end:35, color:"yellow" },
+  { id:"h2", ref:"1.14", start:0, end:35, color:"blue" },
+  { id:"h3", ref:"2.5", start:30, end:70, color:"green" },
+];
+let notes = [
+  { id:"n1", ref:"1.1", quote:"", body:"**Word** = *Logos*. Deliberate echo of [[Gen 1:1]], \"In the beginning…\"\n- Creation is being retold\n- The Word is *with* God and *is* God" },
+  { id:"n2", ref:"1.5", quote:"the light shineth in darkness", body:"\"Comprehend\" can mean both understand and overcome. The darkness neither grasped nor defeated the light." },
+  { id:"n3", ref:"1.14", quote:"And the Word was made flesh", body:"Incarnation. We kneel at this line in the Creed (\"and by the Holy Spirit was incarnate…\")." },
+  { id:"n4", ref:"2.4", quote:"", body:"\"Woman\" is not rude here.\n> Compare [[Jn 19:26]] at the cross, and [[Gen 3:15]]." },
+];
+const readVerses = new Set();
+let mode = "scroll", currentChapter = 1;
+
+const $ = s => document.querySelector(s);
+const bible = $("#bible"), notesLayer = $("#notesLayer"), bibleCol = $("#bibleCol"), notesCol = $("#notesCol");
+const esc = s => s.replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function verseHTML(ch, v, text) {
+  const ref = `${ch}.${v}`;
+  const hs = highlights.filter(h => h.ref === ref).sort((a,b) => a.start - b.start);
+  let out = "", pos = 0;
+  for (const h of hs) {
+    if (h.start < pos) continue;
+    out += esc(text.slice(pos, h.start)) + `<mark class="${h.color}" data-h="${h.id}">${esc(text.slice(h.start, h.end))}</mark>`;
+    pos = h.end;
+  }
+  out += esc(text.slice(pos));
+  return `<p class="verse${readVerses.has(ref) ? " is-read" : ""}" data-ref="${ref}"><span class="read-dot"></span><span class="vn" data-ref="${ref}">${v}</span><span class="vt">${out}</span></p>`;
+}
+
+function render() {
+  const chapters = mode === "scroll" ? Object.keys(TEXT).map(Number) : [currentChapter];
+  bible.innerHTML = chapters.map(ch => `
+    <section class="chapter" data-ch="${ch}">
+      <p class="chapter-h">The Gospel according to John</p>
+      <p class="chapter-n">${ch}</p>
+      ${TEXT[ch].map((t, i) => verseHTML(ch, i + 1, t)).join("")}
+    </section>`).join("") + `
+    <div class="pager">
+      <button id="prev" ${currentChapter === 1 ? "disabled" : ""}>← John ${currentChapter - 1 || ""}</button>
+      <span>Chapter ${currentChapter} of 21</span>
+      <button id="next" ${currentChapter === 2 ? "disabled" : ""}>John ${currentChapter + 1} →</button>
+    </div>
+    <p class="copyright">Mockup text: Douay-Rheims (public domain), used as a placeholder. The production app shows the licensed translation and its copyright notice here.</p>`;
+  $("#prev")?.addEventListener("click", () => goChapter(currentChapter - 1));
+  $("#next")?.addEventListener("click", () => goChapter(currentChapter + 1));
+  observeVerses();
+  renderNotes();
+}
+
+function visibleNotes() {
+  return notes.filter(n => mode === "scroll" || n.ref.startsWith(currentChapter + "."));
+}
+
+function renderNotes() {
+  const list = visibleNotes();
+  $("#notesTitle").textContent = mode === "scroll" ? "Notes · John 1–2" : `Notes · John ${currentChapter}`;
+  $("#noteCount").textContent = `${list.length} note${list.length === 1 ? "" : "s"}`;
+  notesLayer.innerHTML = list.length ? list.map(n => `
+    <div class="note" data-id="${n.id}" data-ref="${n.ref}">
+      <div class="meta"><b>Jn ${n.ref.replace(".", ":")}</b><button class="del" title="Delete note">✕</button></div>
+      ${n.quote ? `<div class="quote">“${esc(n.quote)}”</div>` : ""}
+      <div class="md" title="Click to edit">${md(n.body)}</div>
+      <textarea rows="1" placeholder="Write a note… (Markdown)">${esc(n.body)}</textarea>
+      <div class="saved"></div>
+    </div>`).join("") : `<div class="empty">No notes yet. Select some text, or click a verse number.</div>`;
+  notesLayer.querySelectorAll(".note").forEach(el => {
+    const ta = el.querySelector("textarea"), n = notes.find(x => x.id === el.dataset.id), view = el.querySelector(".md");
+    const edit = on => { el.classList.toggle("editing", on); if (on) { autosize(ta); ta.focus(); } else view.innerHTML = md(n.body); layoutNotes(); };
+    view.addEventListener("click", e => { if (!e.target.closest("a")) edit(true); });
+    ta.addEventListener("blur", () => edit(false));
+    ta.addEventListener("keydown", e => {
+      if (e.key === "Escape") ta.blur();
+      if ((e.metaKey || e.ctrlKey) && (e.key === "b" || e.key === "i")) {
+        e.preventDefault(); const w = e.key === "b" ? "**" : "*", a = ta.selectionStart, b = ta.selectionEnd;
+        ta.setRangeText(w + ta.value.slice(a, b) + w, a, b, "end"); ta.dispatchEvent(new Event("input"));
+      }
+    });
+    autosize(ta);
+    let t;
+    ta.addEventListener("input", () => {
+      autosize(ta); n.body = ta.value; el.querySelector(".saved").textContent = "Saving…";
+      clearTimeout(t); t = setTimeout(() => { el.querySelector(".saved").textContent = "✓ Saved"; layoutNotes(); }, 800);
+    });
+    el.querySelector(".del").addEventListener("click", () => { notes = notes.filter(x => x !== n); renderNotes(); });
+    el.addEventListener("mouseenter", () => link(n.ref, true));
+    el.addEventListener("mouseleave", () => link(n.ref, false));
+  });
+  requestAnimationFrame(layoutNotes);
+}
+
+/* Tiny Markdown subset for the mockup. The real app uses react-markdown + rehype-sanitize. */
+function md(src) {
+  if (!src.trim()) return `<span class="ph">Click to write… (Markdown)</span>`;
+  const inline = t => esc(t)
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.+?)\*/g, "<em>$1</em>")
+    .replace(/\[\[(.+?)\]\]/g, '<a class="vref" href="#" title="Jump to verse">$1</a>');
+  let out = "", list = false;
+  for (const line of src.split("\n")) {
+    const li = line.match(/^\s*[-*] (.*)/);
+    if (li) { if (!list) { out += "<ul>"; list = true; } out += `<li>${inline(li[1])}</li>`; continue; }
+    if (list) { out += "</ul>"; list = false; }
+    if (line.startsWith("> ")) out += `<blockquote>${inline(line.slice(2))}</blockquote>`;
+    else if (line.trim()) out += `<p>${inline(line)}</p>`;
+  }
+  return out + (list ? "</ul>" : "");
+}
+
+function autosize(ta) { ta.style.height = "auto"; ta.style.height = ta.scrollHeight + "px"; }
+
+/* Place each note level with its verse; push down on overlap. */
+function layoutNotes() {
+  if (matchMedia("(max-width:767px)").matches) return;
+  const base = bible.getBoundingClientRect().top;
+  let floor = 44;
+  const els = [...notesLayer.querySelectorAll(".note")]
+    .map(el => ({ el, v: bible.querySelector(`.verse[data-ref="${el.dataset.ref}"]`) }))
+    .filter(x => x.v)
+    .sort((a, b) => a.v.offsetTop - b.v.offsetTop);
+  for (const { el, v } of els) {
+    const want = v.getBoundingClientRect().top - base + 2;
+    const top = Math.max(want, floor);
+    el.style.top = top + "px";
+    floor = top + el.offsetHeight + 10;
+  }
+  $("#notesInner").style.minHeight = Math.max(bible.parentElement.scrollHeight, floor + 120) + "px";
+}
+
+function link(ref, on) {
+  bible.querySelectorAll(`.verse[data-ref="${ref}"]`).forEach(v => v.classList.toggle("linked", on));
+  notesLayer.querySelectorAll(`.note[data-ref="${ref}"]`).forEach(n => n.classList.toggle("linked", on));
+}
+
+/* Synced scrolling: the notes column follows the Bible column. */
+let syncing = false;
+bibleCol.addEventListener("scroll", () => {
+  if (syncing) return; syncing = true;
+  notesCol.scrollTop = bibleCol.scrollTop;
+  requestAnimationFrame(() => syncing = false);
+  if (mode === "scroll") {
+    const secs = [...bible.querySelectorAll(".chapter")];
+    const cur = secs.filter(s => s.getBoundingClientRect().top < 200).pop() || secs[0];
+    $("#chapBtn").textContent = cur.dataset.ch + " ▾";
+  }
+});
+notesCol.addEventListener("scroll", () => {
+  if (syncing) return; syncing = true;
+  bibleCol.scrollTop = notesCol.scrollTop;
+  requestAnimationFrame(() => syncing = false);
+});
+
+/* Automatic progress: a verse counts as read after 1.5 s at least half visible. */
+let io;
+const timers = new Map();
+function observeVerses() {
+  io?.disconnect();
+  io = new IntersectionObserver(entries => {
+    for (const e of entries) {
+      const ref = e.target.dataset.ref;
+      if (e.isIntersecting && !readVerses.has(ref)) {
+        timers.set(ref, setTimeout(() => { readVerses.add(ref); e.target.classList.add("is-read"); updateProgress(); }, 1500));
+      } else { clearTimeout(timers.get(ref)); }
+    }
+  }, { threshold: 0.5 });
+  bible.querySelectorAll(".verse").forEach(v => io.observe(v));
+}
+function updateProgress() {
+  const total = TEXT[1].length + TEXT[2].length;
+  const pct = Math.round(readVerses.size / total * 100);
+  $("#progBar").style.width = pct + "%"; $("#progTxt").textContent = pct + "%";
+}
+
+/* Selection → popover */
+const pop = $("#pop");
+let pendingSel = null, activeHighlight = null;
+
+function selectionToAnchor() {
+  const sel = getSelection();
+  if (!sel.rangeCount || sel.isCollapsed) return null;
+  const r = sel.getRangeAt(0);
+  const vEl = n => (n.nodeType === 1 ? n : n.parentElement).closest(".verse");
+  const sv = vEl(r.startContainer), ev = vEl(r.endContainer);
+  if (!sv || !ev || !bible.contains(sv)) return null;
+  const offsetIn = (verse, node, off) => {
+    const vt = verse.querySelector(".vt");
+    const pre = document.createRange(); pre.selectNodeContents(vt);
+    try { pre.setEnd(node, off); } catch { return 0; }
+    return pre.toString().length;
+  };
+  // The demo keeps highlights inside one verse. The real app stores start_ref/end_ref ranges.
+  const start = sv.contains(r.startContainer) && sv.querySelector(".vt").contains(r.startContainer) ? offsetIn(sv, r.startContainer, r.startOffset) : 0;
+  const end = sv === ev ? offsetIn(sv, r.endContainer, r.endOffset) : sv.querySelector(".vt").textContent.length;
+  if (end <= start) return null;
+  return { ref: sv.dataset.ref, start, end, quote: sv.querySelector(".vt").textContent.slice(start, end).trim(), rect: r.getBoundingClientRect() };
+}
+
+function showPop(rect, removable) {
+  pop.hidden = false;
+  $("#popRemove").hidden = !removable;
+  const w = pop.offsetWidth;
+  pop.style.left = Math.min(Math.max(8, rect.left + rect.width / 2 - w / 2), innerWidth - w - 8) + "px";
+  pop.style.top = Math.max(60, rect.top - 48) + "px";
+}
+
+document.addEventListener("mouseup", e => {
+  if (pop.contains(e.target)) return;
+  setTimeout(() => {
+    const a = selectionToAnchor();
+    if (a) { pendingSel = a; activeHighlight = null; showPop(a.rect, false); }
+    else if (!e.target.closest("mark")) pop.hidden = true;
+  }, 0);
+});
+
+bible.addEventListener("click", e => {
+  const m = e.target.closest("mark");
+  if (m && getSelection().isCollapsed) {
+    activeHighlight = highlights.find(h => h.id === m.dataset.h); pendingSel = null;
+    showPop(m.getBoundingClientRect(), true); return;
+  }
+  const vn = e.target.closest(".vn");
+  if (vn) addNote(vn.dataset.ref, "");
+});
+bible.addEventListener("mouseover", e => { const v = e.target.closest(".verse"); if (v) link(v.dataset.ref, true); });
+bible.addEventListener("mouseout", e => { const v = e.target.closest(".verse"); if (v) link(v.dataset.ref, false); });
+
+pop.querySelectorAll(".sw").forEach(b => b.addEventListener("click", () => {
+  if (activeHighlight) activeHighlight.color = b.dataset.c;
+  else if (pendingSel) highlights.push({ id: "h" + Date.now(), ref: pendingSel.ref, start: pendingSel.start, end: pendingSel.end, color: b.dataset.c });
+  done("Highlighted");
+}));
+$("#popRemove").addEventListener("click", () => { highlights = highlights.filter(h => h !== activeHighlight); done("Highlight removed"); });
+$("#popNote").addEventListener("click", () => {
+  const src = pendingSel || activeHighlight;
+  if (!src) return;
+  const quote = pendingSel ? pendingSel.quote : TEXT[src.ref.split(".")[0]][src.ref.split(".")[1] - 1].slice(src.start, src.end);
+  if (pendingSel) highlights.push({ id: "h" + Date.now(), ref: src.ref, start: src.start, end: src.end, color: "yellow" });
+  pop.hidden = true; getSelection().removeAllRanges();
+  render(); addNote(src.ref, quote);
+});
+function done(msg) { pop.hidden = true; getSelection().removeAllRanges(); render(); toast(msg); }
+
+function addNote(ref, quote) {
+  const n = { id: "n" + Date.now(), ref, quote, body: "" };
+  notes.push(n); renderNotes();
+  document.body.classList.add("sheet-open");
+  setTimeout(() => notesLayer.querySelector(`.note[data-id="${n.id}"] .md`)?.click(), 50);
+}
+
+/* Modes */
+function setMode(m) {
+  mode = m;
+  document.body.classList.toggle("page-mode", m === "page");
+  $("#modeScroll").setAttribute("aria-pressed", m === "scroll");
+  $("#modePage").setAttribute("aria-pressed", m === "page");
+  render(); bibleCol.scrollTop = 0;
+}
+function goChapter(c) { if (!TEXT[c]) return; currentChapter = c; $("#chapBtn").textContent = c + " ▾"; render(); bibleCol.scrollTop = 0; }
+$("#modeScroll").onclick = () => setMode("scroll");
+$("#modePage").onclick = () => setMode("page");
+document.addEventListener("keydown", e => {
+  if (mode !== "page" || e.target.tagName === "TEXTAREA") return;
+  if (e.key === "ArrowRight") goChapter(currentChapter + 1);
+  if (e.key === "ArrowLeft") goChapter(currentChapter - 1);
+});
+
+/* Resizable divider */
+const divider = $("#divider"), split = $("#split");
+divider.addEventListener("pointerdown", e => {
+  divider.setPointerCapture(e.pointerId);
+  const move = ev => {
+    const pct = Math.min(75, Math.max(35, ev.clientX / innerWidth * 100));
+    split.style.setProperty("--left", pct + "%"); layoutNotes();
+  };
+  divider.addEventListener("pointermove", move);
+  divider.addEventListener("pointerup", () => divider.removeEventListener("pointermove", move), { once: true });
+});
+
+/* Theme, mobile sheet, toast */
+$("#themeBtn").onclick = () => {
+  const dark = document.documentElement.dataset.theme
+    ? document.documentElement.dataset.theme === "dark"
+    : matchMedia("(prefers-color-scheme: dark)").matches;
+  document.documentElement.dataset.theme = dark ? "light" : "dark";
+};
+$("#sheetBtn").onclick = () => document.body.classList.toggle("sheet-open");
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 1400); }
+addEventListener("resize", layoutNotes);
+document.fonts?.ready.then(layoutNotes);
+
+render();
+</script>
+</body>
+</html>
