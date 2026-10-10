@@ -36,6 +36,12 @@ async function Progress() {
         <Stat value={`${s.totals.completed.toLocaleString()} / ${s.totals.chapters.toLocaleString()}`} label="chapters read" />
         <Stat value={s.totals.notes.toLocaleString()} label={s.totals.notes === 1 ? "note" : "notes"} />
         <Stat value={s.totals.highlights.toLocaleString()} label={s.totals.highlights === 1 ? "highlight" : "highlights"} />
+        {s.lastReadAt && (
+          <Stat
+            value={new Date(s.lastReadAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            label="last read"
+          />
+        )}
         <span className="flex-1" />
         {s.position && (
           <Link

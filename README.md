@@ -9,7 +9,7 @@ A private, web-based Catholic Bible reader. Only you can sign in (passkeys only)
 - highlights
 - automatic progress tracking with cross-device resume
 
-What's left is **phase 6**: swapping in the NABRE text once it's licensed. The text is the public-domain **Douay-Rheims** as a placeholder until the NABRE license comes through.
+Footnotes are in as well. What's left is **phase 6**, swapping in the NABRE text, and that waits only on the license. The tooling for it is built and has been rehearsed (see below). The text is the public-domain **Douay-Rheims** as a placeholder until the NABRE license comes through.
 
 | Doc | What's in it |
 |---|---|
@@ -24,6 +24,10 @@ What's left is **phase 6**: swapping in the NABRE text once it's licensed. The t
 - **Write in Markdown:** `**bold**`, `*italic*`, lists, `> quotes`, links. Type `[[Jn 3:16]]` to link to a verse. Notes save automatically as you type. **Esc** finishes editing, and ⌘/Ctrl+B or I add formatting.
 - **Desktop:** drag the divider to resize the columns (the width is remembered). Hovering a note highlights its verse.
 - **Phones:** a ✎ in the margin marks verses that have notes. Tap it, or the ✎ count in the header, to open that chapter's notes.
+
+## Footnotes
+
+Small italic letters in the text open the translation's footnotes. For the placeholder, these are Bishop Challoner's annotations. Each chapter also lists its footnotes at the end. Turn them off under **Settings → Reading**; the setting is saved per device.
 
 ## Reading modes
 
@@ -86,14 +90,28 @@ Open `http://localhost:3000/setup?token=<SETUP_TOKEN>` to enroll a passkey. Brow
 | `npm run db:generate` | New migration from `src/db/schema.ts` changes |
 | `npm run db:migrate` | Apply migrations in `drizzle/` |
 | `npm run db:seed [file]` | Load Bible text (default `data/douay-rheims.json`) |
+| `npm run swap-translation [-- --apply]` | Move notes/highlights/progress to the NABRE's numbering (see below) |
+| `npm test` | Unit tests (versification, reference parsing, highlight/footnote rendering) |
 
 ## Switching to NABRE (once licensed)
 
-1. Export the licensed text into the same JSON shape as `data/douay-rheims.json` with `"translation": "nabre"`. **Keep it out of this repo.** The repo is public and the NABRE is copyrighted.
-2. `npm run db:seed -- /path/outside/repo/nabre.json`
-3. Set `BIBLE_TRANSLATION=nabre` in Vercel and redeploy. The reader shows the required CCD copyright notice automatically.
+Everything except the text itself is ready. When CCD grants permission:
 
-Book IDs are USFM codes (`GEN`, `JHN`, `SIR`…), so future notes and progress survive the swap.
+1. **Convert their text** to the same JSON shape as `data/douay-rheims.json`, with `"translation": "nabre"`. **Keep the file outside this repo.** The repo is public and the NABRE is copyrighted.
+   ```jsonc
+   { "translation": "nabre", "books": { "GEN": [ { "c": 1,
+       "v": [[1, "In the beginning, when God created…"], …],
+       "f": [[1, 42, "1:1–2:3", "This section introduces…"], …]   // optional footnotes:
+   } ] } }                                                          // [verse, offset or null, label or null, text]
+   ```
+   Book IDs are USFM codes (`GEN`, `1SA`, `SIR`…; see `src/lib/bible/books.ts`). One choice to make when you see their format: the NABRE prints Esther's Greek additions as chapters **A–F**, but chapters here are numbered. Either fold each addition into the chapter it follows, or number them after chapter 10.
+2. **Load it:** `npm run db:seed -- /path/outside/repo/nabre.json`
+3. **Move your data over:** run `npm run swap-translation` for a dry-run report, then `npm run swap-translation -- --apply`.
+   - It renumbers notes, reading progress, and your resume position where the Douay-Rheims (Vulgate) numbering differs from the NABRE. That means most Psalms (DR Ps 22 → Ps 23, with the split and joined psalms handled), plus Joel and Malachi.
+   - Highlights become whole-verse highlights, since character positions can't carry over between translations.
+   - It lists any notes in books with smaller numbering differences, so you can check them.
+   - It only runs once.
+4. **Switch:** set `BIBLE_TRANSLATION=nabre` in Vercel and redeploy. The reader then shows CCD's required copyright notice.
 
 ## Layout
 
@@ -121,7 +139,9 @@ src/
 data/douay-rheims.json       public-domain placeholder text (see NOTICE.md)
 e2e/                         Playwright end-to-end suites (see e2e/README.md)
 drizzle/                     SQL migrations
-scripts/seed.ts              loads text into Postgres
+scripts/seed.ts              loads text (and footnotes) into Postgres
+scripts/swap-translation.ts  moves your data onto the NABRE's verse numbering
+tests/                       unit tests (npm test)
 ```
 
 ## Placeholder-text quirks

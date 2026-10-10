@@ -1,4 +1,4 @@
-# Open Bible: Plan v0.3
+# Open Bible: Plan v0.4
 
 A private, web-based Catholic Bible reader. Only the owner can sign in, and it works on any device. The core loop is: **read → progress is tracked automatically → highlight and take notes inline**.
 
@@ -14,7 +14,7 @@ A private, web-based Catholic Bible reader. Only the owner can sign in, and it w
 | Sign-in | **Passkey** (Face ID / Touch ID / Windows Hello / Android). No passwords, no email login |
 | Hosting | **Vercel** + Postgres from the Vercel Marketplace (Neon) |
 | Notes format | **Markdown** |
-| Footnotes | *Still open*: in v1 or later? |
+| Footnotes | **Built.** Challoner's notes are shown for the placeholder, and NABRE notes load the same way. See "Footnotes and licensing" in §2 |
 
 ---
 
@@ -54,6 +54,12 @@ Douay-Rheims is public domain, but it is **not** on the USCCB list. The list doe
 None of these are public domain. The NABRE terms ([USCCB permissions](https://www.usccb.org/offices/new-american-bible/permissions)) allow less than 5,000 words without permission. A full Bible reader needs a license, even for one user. The same page also says that "digital applications for sale or free distribution require a license and a royalty payment or permission fee." This app is neither sold nor distributed: it is a single private deployment. Still, the request should say plainly that it is a web app.
 
 **Action (owner):** email `nabperm@usccb.org` and ask for permission to use the NABRE text in a private, non-commercial, single-user, authentication-gated personal study app (not publicly accessible, not distributed). Fallback: check the [API.Bible](https://scripture.api.bible) catalog for a Catholic-edition text with an API key that allows personal apps.
+
+### Footnotes and licensing (checked 2026-10-10)
+- **USCCB permissions page:** it says nothing about footnotes. It requires verbatim quotation and the CCD notice, and it requires a license for digital apps.
+- **Canon 825 §1:** vernacular translations of Scripture must be "provided with necessary and sufficient annotations" for *publication*. A private, single-user app isn't publication, but CCD may still make the notes a condition of its license. This is also why every printed NABRE carries its notes.
+- **The NABRE notes themselves** are CCD-copyrighted, so they need the same license as the text.
+- **Conclusion:** footnotes aren't required by any published term for private use. Still, ask CCD to cover the notes in the permission email and whether they must be shown. The app supports both: footnotes show by default and can be turned off per device.
 
 ### Architecture consequence
 The Bible text sits behind a **`TextSource` interface**, so changing the translation is a config change and not a rewrite:
@@ -235,7 +241,7 @@ POST   /api/notes        PATCH/DELETE /api/notes/:id
 | **3. Highlights** ✅ | Selection popover, 4 colors, multi-verse ranges, highlight → note | Highlights persist and render after reload on another device |
 | **4. Progress** ✅ | Auto read tracking, resume, progress page | Reading Mark straight through shows Mark at 100% |
 | **5. Page mode** ✅ | Page-by-page toggle, ← → keys, swipe | Toggling keeps my position |
-| **6. Real text** | Swap the `TextSource` to the licensed translation | NABRE (or the chosen text) renders with its copyright notice |
+| **6. Real text** 🔧 tooling ready; waiting on the license | Swap the `TextSource` to the licensed translation | NABRE (or the chosen text) renders with its copyright notice |
 
 ---
 
@@ -248,5 +254,5 @@ POST   /api/notes        PATCH/DELETE /api/notes/:id
 
 ## 8. Open questions
 1. ~~Translation~~ → NABRE · ~~Default mode~~ → scroll · ~~Sign-in~~ → passkey · ~~Hosting~~ → Vercel · ~~Notes~~ → Markdown
-2. **Footnotes:** NABRE has extensive footnotes. Show them in v1 (as a third tab in the notes pane), or later? This only matters once the licensed text is in.
+2. ~~Footnotes~~ → built: inline markers, a popover, and a list under each chapter. See §2 for the licensing finding.
 3. **Domain:** use `open-bible-<you>.vercel.app` or a custom domain? Decide before enrolling a passkey (§4.1).
