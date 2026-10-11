@@ -33,9 +33,9 @@ A private, web-based Catholic Bible reader. Only the owner can sign in, and it w
 | 8 | **Sync** | Everything is stored server-side, so it is the same on phone, tablet, and desktop. |
 
 ### Out of scope for v1 (parking lot)
-Reading plans and liturgical calendar (daily Mass readings), cross-references, tags, PDF export, offline reading, multiple translations side-by-side, sharing.
+Liturgical calendar (daily Mass readings), cross-references, tags, PDF export, offline reading, multiple translations side-by-side, sharing.
 
-**Done since v1:** footnotes, search (Bible and notes), an all-notes page, Markdown export, JSON backup and restore, and installing to the home screen.
+**Done since v1:** footnotes, reading plans, search (Bible and notes), an all-notes page, Markdown export, JSON backup and restore, and installing to the home screen.
 
 ---
 

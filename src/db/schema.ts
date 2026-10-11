@@ -138,3 +138,11 @@ export const readingState = pgTable("reading_state", {
   verse: integer("verse").notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Reading plans you've started. The schedule itself is computed from the plan
+// definition (src/lib/plans.ts); progress comes from chapter_progress.
+export const readingPlans = pgTable("reading_plans", {
+  planKey: text("plan_key").primaryKey(),
+  startDate: text("start_date").notNull(), // YYYY-MM-DD in your local time
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

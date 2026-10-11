@@ -37,6 +37,17 @@ Footnotes are in as well. What's left is **phase 6**, swapping in the NABRE text
   - Download a full JSON backup of notes, highlights and progress.
   - Restore a backup. Restoring merges it in and never overwrites what's already there.
 
+## Reading plans
+
+`/plans` (also linked from the Progress page) has five built-in plans:
+- the whole Bible in a year
+- the New Testament in 90 days
+- the Gospels in 30 days
+- the Psalms in 30 days
+- Proverbs in a month
+
+Each plan shows today's chapters, how far behind you are, and a link to the next unread chapter. Any chapter you finish, by reading it or by marking it read, counts toward every plan that includes it. You can run several plans at once.
+
 ## Install it like an app
 
 On iPhone, open the site in Safari, tap Share, then **Add to Home Screen**. On Android or desktop Chrome, use **Install app** in the browser menu. It opens full-screen with its own icon. You still need to be online, since your notes live on the server.
@@ -144,12 +155,14 @@ src/
     api/progress/…           batched verse reads + position, manual mark, summary
     api/search               full-text Bible search + note search
     api/export, api/import   Markdown/JSON export and backup restore
-    search/ notes/           search page; all-notes page
+    search/ notes/ plans/    search page; all-notes page; reading plans
+    api/plans/…              start/stop plans; schedules + completed chapters
     manifest.ts, icon.tsx    install metadata and generated app icons
     progress/                progress page (books × chapters grid)
   components/reader/         Reader (infinite scroll + split layout), BookPicker, ActionPopover (selection → highlight/note)
   components/highlights/     highlight store
   lib/progress/              completion rules, summary, resume position
+  lib/plans.ts               reading plan definitions and scheduling
   components/notes/          note store, NoteCard (Markdown, autosave), aligned column, mobile sheet
   components/auth/ settings/ client-side passkey flows
   db/                        Drizzle schema + client

@@ -45,6 +45,9 @@ async function Progress() {
           />
         )}
         <span className="flex-1" />
+        <Link href="/plans" className="rounded-lg border border-line px-4 py-2.5 font-medium transition hover:border-ink">
+          Reading plans
+        </Link>
         {s.position && (
           <Link
             href={`/read/${s.position.book}/${s.position.chapter}#${verseAnchor(s.position.book, s.position.chapter, s.position.verse)}`}
