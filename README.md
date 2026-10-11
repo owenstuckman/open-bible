@@ -25,6 +25,22 @@ Footnotes are in as well. What's left is **phase 6**, swapping in the NABRE text
 - **Desktop:** drag the divider to resize the columns (the width is remembered). Hovering a note highlights its verse.
 - **Phones:** a ✎ in the margin marks verses that have notes. Tap it, or the ✎ count in the header, to open that chapter's notes.
 
+## Search, your notes, and backups
+
+- **Search** (the magnifier in the header, or press `/`) covers the Bible text and your notes.
+  - It matches word forms ("love" also finds "loved" and "loveth"). `"quotes"` match an exact phrase, and `-word` excludes a word.
+  - Narrow it to the Old Testament, the New Testament, or one book.
+  - Typing a reference like `1 Cor 13:4` and pressing Enter jumps straight there.
+- **All notes** (`/notes`, also linked from Progress and Settings) shows every note in Bible order.
+- **Settings → Your data:**
+  - Export your notes as Markdown.
+  - Download a full JSON backup of notes, highlights and progress.
+  - Restore a backup. Restoring merges it in and never overwrites what's already there.
+
+## Install it like an app
+
+On iPhone, open the site in Safari, tap Share, then **Add to Home Screen**. On Android or desktop Chrome, use **Install app** in the browser menu. It opens full-screen with its own icon. You still need to be online, since your notes live on the server.
+
 ## Footnotes
 
 Small italic letters in the text open the translation's footnotes. For the placeholder, these are Bishop Challoner's annotations. Each chapter also lists its footnotes at the end. Turn them off under **Settings → Reading**; the setting is saved per device.
@@ -126,6 +142,10 @@ src/
     api/notes/…              list/create (by chapter), update, delete notes
     api/highlights/…         list/create (by chapter), recolor, delete highlights
     api/progress/…           batched verse reads + position, manual mark, summary
+    api/search               full-text Bible search + note search
+    api/export, api/import   Markdown/JSON export and backup restore
+    search/ notes/           search page; all-notes page
+    manifest.ts, icon.tsx    install metadata and generated app icons
     progress/                progress page (books × chapters grid)
   components/reader/         Reader (infinite scroll + split layout), BookPicker, ActionPopover (selection → highlight/note)
   components/highlights/     highlight store

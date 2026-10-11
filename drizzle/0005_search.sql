@@ -1,0 +1,1 @@
+CREATE INDEX "verses_fts_idx" ON "verses" USING gin (to_tsvector('english', "text"));

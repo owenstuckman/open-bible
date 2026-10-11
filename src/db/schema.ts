@@ -9,6 +9,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type { Color } from "../lib/highlights/types";
 
 // Auth: one owner, any number of passkeys (phone, laptop, ...).
@@ -41,7 +42,11 @@ export const verses = pgTable(
     verse: integer("verse").notNull(),
     text: text("text").notNull(),
   },
-  (t) => [primaryKey({ columns: [t.translation, t.bookId, t.chapter, t.verse] })],
+  (t) => [
+    primaryKey({ columns: [t.translation, t.bookId, t.chapter, t.verse] }),
+    // Full-text search over the Bible text.
+    index("verses_fts_idx").using("gin", sql`to_tsvector('english', ${t.text})`),
+  ],
 );
 
 // Footnotes/annotations that ship with a translation (Challoner's notes for

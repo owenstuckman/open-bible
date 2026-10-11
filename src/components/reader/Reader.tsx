@@ -312,6 +312,19 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
     [chapters, onLoadError],
   );
 
+  // "/" opens search from anywhere in the reader (unless you're typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      if (document.querySelector("dialog[open]")) return;
+      e.preventDefault();
+      router.push("/search");
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [router]);
+
   // Page mode: ← / → keys and horizontal swipes turn pages.
   useEffect(() => {
     if (mode !== "page") return;
@@ -410,6 +423,17 @@ export function Reader({ initial, chapterCounts, translationName, notice }: Prop
           </div>
           <span className="flex-1" />
           <span className="hidden text-xs text-muted xl:inline">{translationName}</span>
+          <Link
+            href="/search"
+            className="grid size-8 shrink-0 place-items-center rounded-lg border border-line transition hover:border-ink"
+            aria-label="Search"
+            title="Search (/)"
+          >
+            <svg viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <circle cx="8.5" cy="8.5" r="5.5" />
+              <path d="m13 13 4.5 4.5" strokeLinecap="round" />
+            </svg>
+          </Link>
           <Link
             href="/progress"
             className="flex h-8 shrink-0 items-center gap-2 rounded-lg border border-line px-2.5 text-xs text-muted transition hover:border-ink"

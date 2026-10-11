@@ -76,7 +76,8 @@ await page.keyboard.press("Enter");
 await page.screenshot({ path: SHOTS + "/picker.png" });
 await page.getByRole("dialog").getByRole("button", { name: "3", exact: true }).click();
 await page.waitForURL(/\/read\/SIR\/3$/);
-ok(await page.locator('[data-chapter="SIR.3"]').count() === 1, "book picker navigates to Sirach 3");
+await page.locator('main [data-chapter="SIR.3"]').waitFor();
+ok(await page.locator('main [data-chapter="SIR.3"]').count() === 1, "book picker navigates to Sirach 3");
 
 // Lowercase/canonical redirect + 404
 await page.goto(BASE + "/read/jhn/1");

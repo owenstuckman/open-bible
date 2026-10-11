@@ -9,6 +9,7 @@ import { getSession } from "@/lib/auth/session";
 import { TRANSLATIONS, activeTranslation } from "@/lib/bible/text";
 import { AddPasskeyForm, RemovePasskeyButton, SignOutButton } from "@/components/settings/PasskeyControls";
 import { FootnotesToggle } from "@/components/settings/FootnotesToggle";
+import { DataControls } from "@/components/settings/DataControls";
 
 export default function SettingsPage() {
   const t = TRANSLATIONS[activeTranslation()];
@@ -37,6 +38,11 @@ export default function SettingsPage() {
       <section className="mb-10">
         <h2 className="mb-3 text-xs font-semibold tracking-widest text-muted uppercase">Reading</h2>
         <FootnotesToggle />
+      </section>
+
+      <section className="mb-10">
+        <h2 className="mb-3 text-xs font-semibold tracking-widest text-muted uppercase">Your data</h2>
+        <DataControls />
       </section>
 
       <SignOutButton />

@@ -34,7 +34,9 @@ async function Progress() {
       <section className="mb-8 flex flex-wrap items-end gap-x-10 gap-y-4">
         <Stat value={pct} label="of the Bible" />
         <Stat value={`${s.totals.completed.toLocaleString()} / ${s.totals.chapters.toLocaleString()}`} label="chapters read" />
-        <Stat value={s.totals.notes.toLocaleString()} label={s.totals.notes === 1 ? "note" : "notes"} />
+        <Link href="/notes" className="hover:text-accent">
+          <Stat value={s.totals.notes.toLocaleString()} label={s.totals.notes === 1 ? "note →" : "notes →"} />
+        </Link>
         <Stat value={s.totals.highlights.toLocaleString()} label={s.totals.highlights === 1 ? "highlight" : "highlights"} />
         {s.lastReadAt && (
           <Stat

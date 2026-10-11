@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Open Bible",
   description: "A private Bible reader.",
   robots: { index: false, follow: false },
+  appleWebApp: { capable: true, title: "Bible", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
